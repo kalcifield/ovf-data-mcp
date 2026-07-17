@@ -7,7 +7,7 @@ class Provenance(BaseModel):
     provider: Literal["ovf_arcgis", "ovf_vraquery"] = "ovf_arcgis"
     source_url: str
     retrieved_at: str
-    upstream_version: float | None = None
+    upstream_version: float | str | None = None
 
 
 class Dataset(BaseModel):
@@ -57,7 +57,7 @@ class Station(BaseModel):
     distance_km: float | None = None
     thresholds: dict[str, float | None] = PydanticField(default_factory=dict)
     provenance: Provenance
-    raw: dict[str, Any] = PydanticField(default_factory=dict)
+    raw: dict[str, Any] = PydanticField(default_factory=dict, exclude=True)
 
 
 class StationPage(BaseModel):
@@ -80,4 +80,52 @@ class Observation(BaseModel):
     value: float | None = None
     unit: str | None = None
     provenance: Provenance
-    raw: dict[str, Any] = PydanticField(default_factory=dict)
+    raw: dict[str, Any] = PydanticField(default_factory=dict, exclude=True)
+
+
+class ObservationPoint(BaseModel):
+    observed_at: str
+    value: float | None = None
+
+
+class QueryPlan(BaseModel):
+    station: Station = PydanticField(exclude=True)
+    station_id: str
+    station_name: str
+    metric_code: int
+    metric: str
+    unit: str | None = None
+    data_type_code: int
+    data_type: str
+    start: str
+    end: str
+    duration_days: float
+    mode: Literal["raw", "aggregate"]
+    aggregation: dict[str, str] | None = None
+    source_operation: str
+    will_fetch: bool = False
+    warnings: list[str] = PydanticField(default_factory=list)
+
+
+class Coverage(BaseModel):
+    station: Station
+    metric_code: int
+    metric: str
+    unit: str | None = None
+    requested_data_type_code: int
+    requested_data_type: str
+    available_from: str | None = None
+    available_until: str | None = None
+    coverage_data_type_code: int | None = None
+    provenance: Provenance
+    warnings: list[str] = PydanticField(default_factory=list)
+
+
+class ObservationResult(BaseModel):
+    station: Station
+    query: QueryPlan
+    items: list[ObservationPoint]
+    returned: int
+    truncated: bool = False
+    provenance: Provenance
+    warnings: list[str] = PydanticField(default_factory=list)

@@ -6,7 +6,7 @@ from typing import Any
 import httpx
 
 from .errors import UpstreamError
-from .models import Observation, Provenance, Station
+from .models import Coverage, Observation, Provenance, Station
 
 
 class VRAProvider:
@@ -138,7 +138,7 @@ class VRAProvider:
         start: datetime,
         end: datetime,
         limit: int,
-    ) -> list[Observation]:
+    ) -> tuple[list[Observation], int]:
         metric = await self.resolve_metric(metric_name)
         data_type = await self.resolve_data_type(data_type_name)
         body = {
@@ -150,9 +150,107 @@ class VRAProvider:
         }
         data = await self._request("POST", "TS/TsShortList", json=body)
         items = data[0].get("TsItemList") or [] if data else []
-        if len(items) > limit:
+        total = len(items)
+        if total > limit:
             items = items[-limit:]
         source = f"{self.base_url}/TS/TsShortList"
+        retrieved = datetime.now(UTC).isoformat()
+        observations = [
+            Observation(
+                station_id=station.id,
+                station_registry_number=station.registry_number,
+                observed_at=item["UTCTime"],
+                metric_code=metric["KodAZ"],
+                metric=metric["Nev"],
+                data_type_code=data_type["KodAZ"],
+                data_type=data_type["Nev"],
+                value=item.get("Adat"),
+                unit=metric.get("Mertekegyseg"),
+                provenance=Provenance(
+                    provider="ovf_vraquery", source_url=source, retrieved_at=retrieved
+                ),
+                raw=item,
+            )
+            for item in items
+        ]
+        return observations, total
+
+    async def coverage(self, station: Station, metric_name: str, data_type_name: str) -> Coverage:
+        metric = await self.resolve_metric(metric_name)
+        data_type = await self.resolve_data_type(data_type_name)
+
+        async def request(type_code: int) -> list[dict[str, Any]]:
+            return await self._request(
+                "POST",
+                "Base/DataCatalogMinMax",
+                params={"hafKod": metric["KodAZ"], "atKod": type_code},
+                json=[station.registry_number],
+            )
+
+        rows = await request(data_type["KodAZ"])
+        warnings: list[str] = []
+        if not rows and data_type["KodAZ"] == 101:
+            all_rows = await request(0)
+            rows = [row for row in all_rows if row.get("ATKod") == 100]
+            if rows:
+                warnings.append(
+                    "VRAQuery coverage omits composed operational type 101; showing related "
+                    "operational type 100 coverage. This relationship is inferred from the "
+                    "official catalog and live behavior."
+                )
+        row = rows[0] if rows else {}
+        return Coverage(
+            station=station,
+            metric_code=metric["KodAZ"],
+            metric=metric["Nev"],
+            unit=metric.get("Mertekegyseg"),
+            requested_data_type_code=data_type["KodAZ"],
+            requested_data_type=data_type["Nev"],
+            available_from=row.get("UTCTimeMin"),
+            available_until=row.get("UTCTimeMax"),
+            coverage_data_type_code=row.get("ATKod"),
+            provenance=Provenance(
+                provider="ovf_vraquery",
+                source_url=f"{self.base_url}/Base/DataCatalogMinMax",
+                retrieved_at=datetime.now(UTC).isoformat(),
+                upstream_version="OpenAPI v1.0.0",
+            ),
+            warnings=warnings,
+        )
+
+    async def aggregate_observations(
+        self,
+        station: Station,
+        metric_name: str,
+        data_type_name: str,
+        start: datetime,
+        end: datetime,
+        interval: str,
+        operation: str,
+    ) -> list[Observation]:
+        metric = await self.resolve_metric(metric_name)
+        data_type = await self.resolve_data_type(data_type_name)
+        body = {
+            "TorzsszamList": [station.registry_number],
+            "Filters": [
+                {
+                    "FilterID": 1,
+                    "AdatFajtaKod": metric["KodAZ"],
+                    "AdatTipusKod": data_type["KodAZ"],
+                    "StartTime": start.astimezone(UTC).isoformat(),
+                    "EndTime": end.astimezone(UTC).isoformat(),
+                    "AggregateFilters": {
+                        "RangeType": interval,
+                        "AggregateType": operation,
+                        "AggregateRangePosition": "none",
+                    },
+                }
+            ],
+        }
+        data = await self._request("POST", "TS/TSListFilterShort", json=body)
+        responses = data[0].get("FilteredResponse") or [] if data else []
+        items = responses[0].get("TsItemList") or [] if responses else []
+        source = f"{self.base_url}/TS/TSListFilterShort"
         retrieved = datetime.now(UTC).isoformat()
         return [
             Observation(
@@ -166,7 +264,10 @@ class VRAProvider:
                 value=item.get("Adat"),
                 unit=metric.get("Mertekegyseg"),
                 provenance=Provenance(
-                    provider="ovf_vraquery", source_url=source, retrieved_at=retrieved
+                    provider="ovf_vraquery",
+                    source_url=source,
+                    retrieved_at=retrieved,
+                    upstream_version="OpenAPI v1.0.0",
                 ),
                 raw=item,
             )

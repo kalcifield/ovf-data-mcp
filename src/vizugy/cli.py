@@ -151,45 +151,109 @@ def get_observations(
     station: str,
     metric: str = typer.Option("water-level", help="Metric name, alias, or VRA code."),
     data_type: str = typer.Option("operational", help="Data-type name, alias, or VRA code."),
-    start: str | None = typer.Option(
-        None, help="UTC/offset ISO-8601 start; default five days ago."
-    ),
-    end: str | None = typer.Option(None, help="UTC/offset ISO-8601 end; default now."),
+    start: str = typer.Option(..., help="UTC/offset ISO-8601 start."),
+    end: str = typer.Option(..., help="UTC/offset ISO-8601 end."),
     limit: int = typer.Option(1000, min=1, max=1000),
     format: Output = typer.Option(Output.json),
+    explain: bool = typer.Option(False, help="Resolve and validate without fetching data."),
 ) -> None:
     service = create_service()
 
     async def operation():
         try:
+            if explain:
+                return await service.explain_observation_query(
+                    station, metric, data_type, parse_time(start), parse_time(end)
+                )
             return await service.get_observations(
                 station, metric, data_type, parse_time(start), parse_time(end), limit
             )
         finally:
             await service.close()
 
-    selected, items = run(operation())
+    result = run(operation())
+    if explain:
+        print(result.model_dump_json(indent=2))
+        return
     if format == Output.jsonl:
-        for item in items:
+        for item in result.items:
             print(item.model_dump_json())
         print(
             json.dumps(
-                {"_meta": {"station": selected.model_dump(mode="json"), "returned": len(items)}},
+                {"_meta": result.model_dump(mode="json", exclude={"items"})},
                 ensure_ascii=False,
             )
         )
     else:
-        print(
-            json.dumps(
-                {
-                    "station": selected.model_dump(mode="json"),
-                    "items": [item.model_dump(mode="json") for item in items],
-                    "returned": len(items),
-                },
-                ensure_ascii=False,
-                indent=2,
+        print(result.model_dump_json(indent=2))
+
+
+@observations.command("coverage")
+def observation_coverage(
+    station: str,
+    metric: str = typer.Option("water-level"),
+    data_type: str = typer.Option("operational"),
+) -> None:
+    """Inspect temporal coverage before querying values."""
+    service = create_service()
+
+    async def operation():
+        try:
+            return await service.inspect_coverage(station, metric, data_type)
+        finally:
+            await service.close()
+
+    print(run(operation()).model_dump_json(indent=2))
+
+
+@observations.command("aggregate")
+def aggregate_observations(
+    station: str,
+    start: str = typer.Option(..., help="UTC/offset ISO-8601 start."),
+    end: str = typer.Option(..., help="UTC/offset ISO-8601 end."),
+    metric: str = typer.Option("water-level"),
+    data_type: str = typer.Option("operational"),
+    interval: str = typer.Option("daily", help="daily, tenday, monthly, or yearly."),
+    operation: str = typer.Option("max", help="min, max, avg, sum, cnt, mean, or cntday."),
+    format: Output = typer.Option(Output.json),
+    explain: bool = typer.Option(False, help="Resolve and validate without fetching data."),
+) -> None:
+    """Run documented server-side aggregation over a bounded interval."""
+    service = create_service()
+
+    async def execute():
+        try:
+            if explain:
+                return await service.explain_observation_query(
+                    station,
+                    metric,
+                    data_type,
+                    parse_time(start),
+                    parse_time(end),
+                    interval=interval,
+                    operation=operation,
+                )
+            return await service.aggregate_observations(
+                station,
+                metric,
+                data_type,
+                parse_time(start),
+                parse_time(end),
+                interval,
+                operation,
             )
-        )
+        finally:
+            await service.close()
+
+    result = run(execute())
+    if explain:
+        print(result.model_dump_json(indent=2))
+    elif format == Output.jsonl:
+        for item in result.items:
+            print(item.model_dump_json())
+        print(json.dumps({"_meta": result.model_dump(mode="json", exclude={"items"})}))
+    else:
+        print(result.model_dump_json(indent=2))
 
 
 if __name__ == "__main__":

@@ -17,4 +17,6 @@ async def test_stdio_server_exposes_intent_tools():
                 "find_stations",
                 "nearest_stations",
                 "get_observations",
+                "inspect_coverage",
+                "aggregate_observations",
             ]

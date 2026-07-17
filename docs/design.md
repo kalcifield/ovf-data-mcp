@@ -89,14 +89,22 @@ prompts in v1: they add little stable capability.
 Implemented user journeys: station search with watercourse/municipality filters,
 nearest station, authoritative measurement catalogue, and bounded observation ranges
 with explicit metric/data-type selection. The agent receives typed values, UTC times,
-units, raw fields, and provenance; anomaly interpretation remains with the agent.
+units, and provenance; anomaly interpretation remains with the agent.
+
+Phase 2 adds coverage inspection, query explanation, seven-day raw-query safety bounds,
+and documented VRAQuery server-side aggregation (`min`, `max`, `avg`, `sum`, `cnt`,
+`mean`, `cntday`) over daily, ten-day, monthly, or yearly buckets. Observation points
+are compact; station-independent query metadata and provenance appear once per result.
 
 ## Roadmap
 
 1. Current slice: catalogue discovery/description; deterministic provider tests.
 2. Current slice: VRAQuery station search, nearest lookup, measurement catalogue, and
    bounded time-series retrieval; recorded provider fixtures and MCP parity.
-3. Clarify OVF terms and document attribution/rate policy; add schema-drift canary.
-4. Generate broader VRAQuery wire clients from OpenAPI; expose documented quality and
+3. Phase 2: coverage, dry-run query plans, safe raw bounds, and server aggregation.
+4. Next: bilingual discovery/entity resolution, cache/freshness metadata, and bounded
+   spatial feature queries.
+5. Clarify OVF terms and document attribution/rate policy; add schema-drift canary.
+6. Generate broader VRAQuery wire clients from OpenAPI; expose documented quality and
    aggregation filters without inventing semantics.
-5. Optional HTTP MCP deployment only if real clients require it.
+7. Optional HTTP MCP deployment only if real clients require it.

@@ -65,22 +65,52 @@ def build_server():
     @mcp.tool()
     async def get_observations(
         station: str,
+        start: datetime,
+        end: datetime,
         metric: str = "water-level",
         data_type: str = "operational",
-        start: datetime | None = None,
-        end: datetime | None = None,
         limit: int = 1000,
     ) -> dict:
-        """Get typed observations for a station and UTC interval."""
+        """Get raw observations for an explicit interval of at most 7 days."""
         service = create_service()
         try:
-            selected, items = await service.get_observations(
-                station, metric, data_type, start, end, limit
+            result = await service.get_observations(station, metric, data_type, start, end, limit)
+            return result.model_dump(mode="json")
+        finally:
+            await service.close()
+
+    @mcp.tool()
+    async def inspect_coverage(
+        station: str,
+        metric: str = "water-level",
+        data_type: str = "operational",
+    ) -> dict:
+        """Resolve a station and report documented temporal coverage before querying."""
+        service = create_service()
+        try:
+            return (await service.inspect_coverage(station, metric, data_type)).model_dump(
+                mode="json"
             )
-            return {
-                "station": selected.model_dump(mode="json"),
-                "items": [item.model_dump(mode="json") for item in items],
-            }
+        finally:
+            await service.close()
+
+    @mcp.tool()
+    async def aggregate_observations(
+        station: str,
+        start: datetime,
+        end: datetime,
+        metric: str = "water-level",
+        data_type: str = "operational",
+        interval: str = "daily",
+        operation: str = "max",
+    ) -> dict:
+        """Aggregate observations server-side over daily, ten-day, monthly, or yearly buckets."""
+        service = create_service()
+        try:
+            result = await service.aggregate_observations(
+                station, metric, data_type, start, end, interval, operation
+            )
+            return result.model_dump(mode="json")
         finally:
             await service.close()
 
