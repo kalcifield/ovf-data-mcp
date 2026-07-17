@@ -31,3 +31,10 @@ testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 100
+
+[dependency-groups]
+dev = [
+    "prek>=0.4.10",
+    "ruff>=0.15.22",
+    "ty>=0.0.60",
+]
