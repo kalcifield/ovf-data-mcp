@@ -3,8 +3,8 @@
 ## Recommendation
 
 Proceed CLI-first with a shared typed application layer and thin CLI/MCP adapters.
-Keep observations out of the stable API until OVF documents their semantics and reuse
-terms. Do not expose arbitrary ArcGIS SQL.
+Use the documented VRAQuery API for water observations; use ArcGIS for spatial
+catalogue discovery. Do not expose arbitrary ArcGIS SQL or make anomaly judgments.
 
 ## Verified 2026-07-17
 
@@ -19,29 +19,42 @@ terms. Do not expose arbitrary ArcGIS SQL.
 - Querying object IDs 7 and 21 with `outSR=4326` returned valid GeoJSON point features.
 - Service/layer descriptions and `copyrightText` were empty. Public accessibility is
   not evidence of an open-data licence.
-- `data.vizugy.hu` responds, but no documented stable API or reuse terms were verified.
+- Correction after broader discovery: the official frontend uses VRAQuery, documented
+  by OpenAPI 3.0.1 at
+  `https://vmservice.vizugy.hu/vraquery/swagger/v1.0/swagger.json`. It exposes 39
+  schemas for station catalogues, metric/data-type catalogues, time-series filters,
+  quality classifications, aggregation, and forecasts.
+- Its public frontend token flow is available through
+  `https://data.vizugy.hu/AuthApi/auth/token` with the official site origin/referrer.
+- Live VRAQuery verification returned 1,190 active surface-water stations. The metric
+  catalogue explicitly defines units and acceptable ranges; e.g. surface water level
+  code 68 uses `cm`, and discharge code 87 uses `m3/s`.
 - Official MCP Python SDK stable line is v1; v2 is pre-release. Pin `<2` for this slice.
 
 ## Inferences
 
 - ArcGIS is suitable for discovery, schema inspection, station search, and bounded
   feature reads, provided each dataset has an explicit mapping and contract fixture.
-- Station IDs should prefer the published VOR/AllomasVOR code; upstream object IDs are
-  provider cursors, not domain identity.
-- Observation tables are operational views, not yet a trustworthy public contract.
+- VRAQuery's hydrological registry number (`Tsz`) is the documented station identity;
+  public IDs namespace it as `surface:<Tsz>`.
+- ArcGIS observation tables are operational views and are no longer the preferred
+  observation contract. VRAQuery is the preferred source.
 
 ## Unresolved
 
 - OVF reuse/licensing, attribution wording, acceptable request rate, and support policy.
 - Authoritative update timestamps; catalogue metadata does not consistently expose them.
-- Exact timezone, units, quality flags, and retention guarantees for observations.
+- Retention guarantees and the exact validation status of each data-type code.
 - Whether EOV coordinates are consistently EPSG:23700 when exposed as EOVx/EOVy.
 
 ## Architecture
 
-`models` defines stable domain envelopes and provenance. `providers` owns ArcGIS wire
-format, retries, caching, schema drift, and later ID-chunk pagination. `service` owns
-intent operations and bounds. CLI and MCP call only `service`.
+`models` defines stable domain envelopes and provenance. `providers` owns ArcGIS
+catalogue behavior. `vra_provider` follows the published OpenAPI contract for stations,
+catalogues, and observations. `service` owns intent operations and bounds. CLI and MCP
+call only `service`. Public domain DTOs are intentionally curated; upstream wire
+models should be generated from the OpenAPI schema when broader endpoint coverage is
+added.
 
 Errors: retry transport failures and 429/5xx twice with short exponential backoff;
 never retry validation/not-found; emit no partial success without explicit truncation.
@@ -59,25 +72,31 @@ CLI first slice:
 
 - `vizugy datasets list [--query TEXT] [--limit N] [--format json|jsonl]`
 - `vizugy datasets describe ID [--layer N]`
+- `vizugy catalog measurements`
+- `vizugy stations search [QUERY] [--watercourse TEXT] [--municipality TEXT]`
+- `vizugy stations nearest LATITUDE LONGITUDE`
+- `vizugy observations get STATION --metric NAME_OR_CODE --data-type NAME_OR_CODE`
 
 JSON is one envelope. JSONL is one item per line followed by a tagged `_meta` line.
 Stdout contains data only; stderr diagnostics only. Exit codes: 0 success, 2 usage,
 3 upstream, 4 absent. Default limit 50; hard maximum 1,000.
 
-MCP first slice: `discover_datasets`, `describe_dataset`. Resources later: static
-dataset schemas and provider status. Tools perform parameterized/current reads. No
+MCP tools mirror these intents: `discover_datasets`, `describe_dataset`,
+`list_measurement_types`, `find_stations`, `nearest_stations`, and
+`get_observations`. Resources later: static dataset schemas and provider status. No
 prompts in v1: they add little stable capability.
 
-Next user journeys, in order: station text search; nearest station; bbox feature query;
-experimental recent observations from an explicitly mapped provider; observation range.
-Proposed MCP tools: `find_stations`, `nearest_stations`, `query_features`, and only after
-verification `get_observations`.
+Implemented user journeys: station search with watercourse/municipality filters,
+nearest station, authoritative measurement catalogue, and bounded observation ranges
+with explicit metric/data-type selection. The agent receives typed values, UTC times,
+units, raw fields, and provenance; anomaly interpretation remains with the agent.
 
 ## Roadmap
 
 1. Current slice: catalogue discovery/description; deterministic provider tests.
-2. Explicit station adapter for one nationwide layer; ID-chunk pagination, field
-   selection, bbox and nearest search; fixtures and CLI/MCP equivalence tests.
+2. Current slice: VRAQuery station search, nearest lookup, measurement catalogue, and
+   bounded time-series retrieval; recorded provider fixtures and MCP parity.
 3. Clarify OVF terms and document attribution/rate policy; add schema-drift canary.
-4. Experimental observation adapter with timestamps, units, quality semantics.
+4. Generate broader VRAQuery wire clients from OpenAPI; expose documented quality and
+   aggregation filters without inventing semantics.
 5. Optional HTTP MCP deployment only if real clients require it.

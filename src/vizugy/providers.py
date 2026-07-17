@@ -103,6 +103,9 @@ class ArcGISProvider:
             crs_wkid=spatial.get("latestWkid") or spatial.get("wkid"),
             max_record_count=raw.get("maxRecordCount"),
             supports_pagination=advanced.get("supportsPagination"),
-            fields=[Field(name=f["name"], alias=f.get("alias"), type=f["type"], raw=f) for f in raw.get("fields", [])],
+            fields=[
+                Field(name=f["name"], alias=f.get("alias"), type=f["type"], raw=f)
+                for f in raw.get("fields", [])
+            ],
             raw=raw,
         )

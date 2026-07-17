@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field as PydanticField
 
 
 class Provenance(BaseModel):
-    provider: Literal["ovf_arcgis"] = "ovf_arcgis"
+    provider: Literal["ovf_arcgis", "ovf_vraquery"] = "ovf_arcgis"
     source_url: str
     retrieved_at: str
     upstream_version: float | None = None
@@ -44,3 +44,40 @@ class Page(BaseModel):
     limit: int
     truncated: bool
     warnings: list[str] = PydanticField(default_factory=list)
+
+
+class Station(BaseModel):
+    id: str
+    registry_number: int
+    name: str
+    watercourse: str | None = None
+    municipality: str | None = None
+    latitude: float
+    longitude: float
+    distance_km: float | None = None
+    thresholds: dict[str, float | None] = PydanticField(default_factory=dict)
+    provenance: Provenance
+    raw: dict[str, Any] = PydanticField(default_factory=dict)
+
+
+class StationPage(BaseModel):
+    items: list[Station]
+    returned: int
+    total: int
+    limit: int
+    truncated: bool
+    warnings: list[str] = PydanticField(default_factory=list)
+
+
+class Observation(BaseModel):
+    station_id: str
+    station_registry_number: int
+    observed_at: str
+    metric_code: int
+    metric: str
+    data_type_code: int
+    data_type: str
+    value: float | None = None
+    unit: str | None = None
+    provenance: Provenance
+    raw: dict[str, Any] = PydanticField(default_factory=dict)

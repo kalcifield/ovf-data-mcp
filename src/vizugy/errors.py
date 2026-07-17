@@ -8,4 +8,3 @@ class UpstreamError(VizugyError):
 
 class NotFoundError(VizugyError):
     pass
-

@@ -13,4 +13,8 @@ async def test_stdio_server_exposes_intent_tools():
             assert [tool.name for tool in tools.tools] == [
                 "discover_datasets",
                 "describe_dataset",
+                "list_measurement_types",
+                "find_stations",
+                "nearest_stations",
+                "get_observations",
             ]
