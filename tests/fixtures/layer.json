@@ -1,0 +1,1 @@
+{"id":6,"name":"Stations","geometryType":"esriGeometryPoint","maxRecordCount":1000,"extent":{"spatialReference":{"wkid":102100,"latestWkid":3857}},"advancedQueryCapabilities":{"supportsPagination":false},"fields":[{"name":"station_name","alias":"Név","type":"esriFieldTypeString","length":200}]}
