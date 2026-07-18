@@ -1,7 +1,10 @@
+import asyncio
 import math
 from datetime import UTC, datetime
 
-from .errors import NotFoundError
+from zoneinfo import ZoneInfo
+
+from .errors import NotFoundError, UpstreamError
 from .models import (
     Coverage,
     DatasetDescription,
@@ -169,6 +172,18 @@ class VizugyService:
         return metric
 
     @staticmethod
+    def _bucket_floor(moment: datetime, interval: str) -> datetime:
+        # Upstream buckets start at Europe/Budapest local boundaries; splitting anywhere
+        # else would compute the straddling bucket twice from partial ranges.
+        local = moment.astimezone(ZoneInfo("Europe/Budapest"))
+        if interval == "yearly":
+            local = local.replace(month=1)
+        if interval in {"yearly", "monthly", "tenday"}:
+            local = local.replace(day=1)
+        local = local.replace(hour=0, minute=0, second=0, microsecond=0)
+        return local.astimezone(UTC)
+
+    @staticmethod
     def _bounds(start: datetime | None, end: datetime | None) -> tuple[datetime, datetime]:
         if start is None or end is None:
             raise ValueError("explicit start and end timestamps are required")
@@ -298,20 +313,46 @@ class VizugyService:
         }[interval]
         if max_buckets > 1000:
             raise ValueError("aggregation may exceed 1000 buckets; narrow the interval")
-        items = await self._vra().aggregate_observations(
-            plan.station,
-            self._network_metric(plan.station, metric),
-            data_type,
-            datetime.fromisoformat(plan.start),
-            datetime.fromisoformat(plan.end),
-            interval,
-            operation,
-        )
+        chunks = 0
+
+        async def fetch(chunk_start: datetime, chunk_end: datetime, depth: int) -> list:
+            nonlocal chunks
+            try:
+                result = await self._vra().aggregate_observations(
+                    plan.station,
+                    self._network_metric(plan.station, metric),
+                    data_type,
+                    chunk_start,
+                    chunk_end,
+                    interval,
+                    operation,
+                )
+                chunks += 1
+                return result
+            except UpstreamError:
+                # Multi-decade windows can exceed the upstream timeout; bisect at a bucket
+                # boundary and retry. Short windows fail fast so outages don't fan out.
+                if depth >= 3 or (chunk_end - chunk_start).days <= 730:
+                    raise
+                mid = self._bucket_floor(chunk_start + (chunk_end - chunk_start) / 2, interval)
+                if not chunk_start < mid < chunk_end:
+                    raise
+                # A timed-out query still costs the server; pause before asking again.
+                await asyncio.sleep(2 * (depth + 1))
+                return await fetch(chunk_start, mid, depth + 1) + await fetch(
+                    mid, chunk_end, depth + 1
+                )
+
+        items = await fetch(datetime.fromisoformat(plan.start), datetime.fromisoformat(plan.end), 0)
         plan.will_fetch = True
         warnings = [
             "VRAQuery aggregation buckets follow upstream hydrological/local-day boundaries; "
             "returned timestamps are UTC bucket labels."
         ]
+        if chunks > 1:
+            warnings.append(
+                f"window exceeded an upstream limit and was fetched in {chunks} chunked requests"
+            )
         provenance = items[0].provenance if items else plan.station.provenance
         return ObservationResult(
             station=plan.station,

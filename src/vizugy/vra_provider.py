@@ -24,7 +24,12 @@ class VRAProvider:
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.token_url = token_url
-        self.client = httpx.AsyncClient(timeout=timeout, follow_redirects=True)
+        # Identify ourselves so OVF can attribute and contact this traffic.
+        self.client = httpx.AsyncClient(
+            timeout=timeout,
+            follow_redirects=True,
+            headers={"User-Agent": "ovf-data-mcp (+https://github.com/kalcifield/ovf-data-mcp)"},
+        )
         self._token: str | None = None
         self._metrics: list[dict[str, Any]] | None = None
         self._data_types: list[dict[str, Any]] | None = None
@@ -61,7 +66,9 @@ class VRAProvider:
             response.raise_for_status()
             return response.json()
         except (httpx.HTTPError, KeyError, ValueError) as exc:
-            raise UpstreamError(f"VRAQuery request failed: {exc}") from exc
+            # str() of httpx timeout exceptions is often empty; fall back to the class name.
+            detail = str(exc) or type(exc).__name__
+            raise UpstreamError(f"VRAQuery request failed: {detail}") from exc
 
     async def catalogs(self) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         if self._metrics is None:
