@@ -25,6 +25,7 @@ uv run ty check src tests
 ```
 
 Run `uv run pre-commit run --all-files` before submitting broad changes.
+Release: `scripts/release {patch|minor|major}`; GitHub Actions publishes to PyPI asynchronously.
 
 ## Coding Style & Naming Conventions
 
