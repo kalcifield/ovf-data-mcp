@@ -1,5 +1,11 @@
 # ovf-data-mcp
 
+[![PyPI](https://img.shields.io/pypi/v/ovf-data-mcp)](https://pypi.org/project/ovf-data-mcp/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![MCP](https://img.shields.io/badge/MCP-stdio-6f42c1)](https://modelcontextprotocol.io/)
+[![Status: Alpha](https://img.shields.io/badge/status-alpha-orange)](TODO.md)
+
 Agent-friendly, read-only access to public Hungarian water-management data from the
 Országos Vízügyi Főigazgatóság (OVF).
 

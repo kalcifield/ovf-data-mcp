@@ -1,9 +1,10 @@
 [project]
 name = "ovf-data-mcp"
-version = "0.1.0"
+version = "0.1.1"
 description = "Agent-friendly access to public Hungarian water-management datasets"
 readme = "README.md"
 requires-python = ">=3.11"
+license = "MIT"
 keywords = ["hungary", "hydrology", "mcp", "ovf", "water-data"]
 classifiers = [
   "Development Status :: 3 - Alpha",
