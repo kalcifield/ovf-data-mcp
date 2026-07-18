@@ -42,25 +42,29 @@ or provide unrestricted bulk access. The agent remains responsible for analysis.
 
 ## Showcase
 
-What an agent can build from three `vizugy` queries — a self-contained dashboard of a
-year of Danube water levels at Budapest, with daily min–max range, flood-alert
-threshold, and full provenance:
+What an agent can build from a handful of `vizugy` queries — 92 years of Lake Velence
+water levels, from the near-dry 1930s to July 2026, which sits below the 2022 crisis
+floor at a level last seen in 1938:
 
-[![Danube water level dashboard](docs/examples/danube-water-level.png)](https://kalcifield.github.io/ovf-data-mcp/examples/danube-water-level.html)
+[![Nine decades of Lake Velence](docs/examples/lake-velence-90-years.png)](https://kalcifield.github.io/ovf-data-mcp/examples/lake-velence-90-years.html)
 
-**[View the live dashboard →](https://kalcifield.github.io/ovf-data-mcp/examples/danube-water-level.html)**
-([source](docs/examples/danube-water-level.html)) — every number on the page came from
+**[View the live dashboard →](https://kalcifield.github.io/ovf-data-mcp/examples/lake-velence-90-years.html)**
+([source](docs/examples/lake-velence-90-years.html)) — every number on the page came from
 these commands, no scraping or manual downloads:
 
 ```bash
-vizugy stations search Budapest --watercourse Duna
-vizugy observations aggregate surface:1026 \
-    --start 2025-07-18T00:00:00Z --end 2026-07-18T00:00:00Z \
-    --interval daily --operation avg   # + min, max
+vizugy stations search Velence
+vizugy observations coverage surface:818          # available from 1934-01-01
+vizugy observations aggregate surface:818 \
+    --start 1934-01-01T00:00:00Z --end 1960-01-01T00:00:00Z \
+    --interval yearly --operation avg   # × avg/min/max × 4 windows, + monthly close-up
 ```
 
 More examples, each built the same way:
 
+- **[Danube at Budapest — water level, last 12 months](https://kalcifield.github.io/ovf-data-mcp/examples/danube-water-level.html)**
+  ([source](docs/examples/danube-water-level.html)) — daily mean with min–max range
+  and the flood-alert threshold at the Budapest gauge.
 - **[A flood wave travelling down the Danube](https://kalcifield.github.io/ovf-data-mcp/examples/danube-flood-wave.html)**
   ([source](docs/examples/danube-flood-wave.html)) — small multiples of five gauges,
   Komárom to Mohács, tracking the February 2026 crest across ~320 river-km in 3 days.

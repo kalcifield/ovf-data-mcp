@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nine decades of Lake Velence | ovf-data-mcp example</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { margin: 0; box-sizing: border-box; }
+  .viz-root {
+    color-scheme: light;
+    --page: #f9f9f7; --surface-1: #fcfcfb;
+    --text-primary: #0b0b0b; --text-secondary: #52514e; --text-muted: #898781;
+    --grid: #e1e0d9; --baseline: #c3c2b7; --border: rgba(11,11,11,0.10);
+    --series-1: #2a78d6;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page); color: var(--text-primary);
+    min-height: 100vh; padding: 32px 16px 48px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      color-scheme: dark;
+      --page: #0d0d0d; --surface-1: #1a1a19;
+      --text-primary: #ffffff; --text-secondary: #c3c2b7; --text-muted: #898781;
+      --grid: #2c2c2a; --baseline: #383835; --border: rgba(255,255,255,0.10);
+      --series-1: #3987e5;
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface-1: #1a1a19;
+    --text-primary: #ffffff; --text-secondary: #c3c2b7; --text-muted: #898781;
+    --grid: #2c2c2a; --baseline: #383835; --border: rgba(255,255,255,0.10);
+    --series-1: #3987e5;
+  }
+  .wrap { max-width: 1000px; margin: 0 auto; }
+  header h1 { font-size: 22px; font-weight: 650; }
+  header p { color: var(--text-secondary); font-size: 14px; margin-top: 6px; max-width: 75ch; }
+  header p a { color: inherit; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 24px 0 16px; }
+  .tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .tile .label { font-size: 13px; color: var(--text-secondary); }
+  .tile .value { font-size: 30px; font-weight: 600; margin-top: 4px; }
+  .tile .value small { font-size: 15px; font-weight: 500; color: var(--text-secondary); }
+  .tile .sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 18px 18px 10px; position: relative; margin-bottom: 16px; }
+  .card h2 { font-size: 15px; font-weight: 600; }
+  .card .sub { font-size: 13px; color: var(--text-secondary); margin: 4px 0 10px; }
+  svg { display: block; width: 100%; height: auto; outline: none; }
+  svg:focus-visible { outline: 2px solid var(--series-1); outline-offset: 2px; border-radius: 6px; }
+  .tooltip {
+    position: absolute; pointer-events: none; display: none;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.12); padding: 8px 12px; font-size: 13px; min-width: 150px; z-index: 2;
+  }
+  .tooltip .date { font-weight: 600; margin-bottom: 4px; }
+  .tooltip .row { display: flex; align-items: center; gap: 7px; margin-top: 2px; }
+  .tooltip .key { width: 14px; height: 0; border-top: 2px solid var(--series-1); flex: none; }
+  .tooltip .key.band { border-top: 6px solid color-mix(in srgb, var(--series-1) 25%, var(--surface-1)); }
+  .tooltip .val { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tooltip .name { color: var(--text-secondary); }
+  details { margin-top: 16px; background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+  summary { cursor: pointer; font-size: 14px; font-weight: 600; color: var(--text-secondary); }
+  .tablebox { max-height: 340px; overflow: auto; margin-top: 10px; }
+  table { border-collapse: collapse; font-size: 13px; width: 100%; }
+  th, td { text-align: right; padding: 4px 12px; font-variant-numeric: tabular-nums; border-bottom: 1px solid var(--grid); }
+  th:first-child, td:first-child { text-align: left; }
+  thead th { position: sticky; top: 0; background: var(--surface-1); color: var(--text-secondary); font-weight: 600; }
+  footer { margin-top: 24px; font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+  footer h3 { font-size: 13px; color: var(--text-primary); margin-bottom: 4px; }
+  footer pre { background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; overflow-x: auto; font-size: 12.5px; margin: 8px 0; }
+  footer a { color: inherit; }
+  .chart-text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+</style>
+</head>
+<body>
+<div class="viz-root">
+<div class="wrap">
+  <header>
+    <h1>Nine decades of Lake Velence</h1>
+    <p>Water level at the Agárd gauge on the Velencei-tó, 1934–2026 — one of the longest public
+       records in the OVF archive. The lake nearly dried out in the 1930s, hit its recorded high
+       in 1940 and crashed in the 2022 drought — and July 2026 is worse: 43 cm so far, twelve
+       centimetres under the 2022 crisis floor and a level last seen in 1938. Retrieved by an AI agent through
+       <a href="https://github.com/kalcifield/ovf-data-mcp">ovf-data-mcp</a>. Operational data — preliminary, unchecked.</p>
+  </header>
+
+  <div class="tiles" id="tiles"></div>
+
+  <div class="card">
+    <h2>Yearly water level, 1934–2025 (cm, local gauge zero)</h2>
+    <p class="sub">Line: yearly mean · band: yearly min–max · hover or focus + arrow keys for values</p>
+    <svg id="chart-y" viewBox="0 0 960 380" role="img" tabindex="0"
+         aria-label="Line chart of yearly mean water level of Lake Velence at Agárd from 1934 to 2025, with a band showing each year's minimum to maximum, plus a detached marker for 2026 to date. The lake was nearly dry in the mid-1930s with yearly means below 20 centimetres, reached its record high yearly mean of 194 centimetres in 1940, and fell to 65 centimetres in the 2022 drought. The 2026 marker shows a partial-year mean of 67.5 centimetres and a low of 39 centimetres, a level undercut only in the 1930s. Full values in the data table below."></svg>
+    <div class="tooltip" id="tip-y"></div>
+  </div>
+
+  <div class="card">
+    <h2>Monthly mean, January 2019 – July 2026 (cm)</h2>
+    <p class="sub">The recent slide in close-up · last month is partial (to 17 Jul) · hover or focus + arrow keys for values</p>
+    <svg id="chart-m" viewBox="0 0 960 260" role="img" tabindex="0"
+         aria-label="Line chart of monthly mean water level of Lake Velence from January 2019 to July 2026. Levels fall from around 140 centimetres in 2019 to 43 centimetres in July 2026, dipping below the 2022 drought's floor of 55 centimetres, with a partial recovery during 2023 and 2024. Full values in the data table below."></svg>
+    <div class="tooltip" id="tip-m"></div>
+  </div>
+
+  <details>
+    <summary>Data table — yearly, 1934–2025</summary>
+    <div class="tablebox"><table id="datatable">
+      <thead><tr><th>Year</th><th>Mean (cm)</th><th>Min (cm)</th><th>Max (cm)</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </details>
+
+  <footer>
+    <h3>How this page was made</h3>
+    <p>An agent found the gauge, inspected coverage (data back to 1934), then ran yearly
+       server-side aggregations in date-bounded chunks plus a monthly close-up:</p>
+    <pre>vizugy stations search Velence
+vizugy observations coverage surface:818          # available from 1934-01-01
+vizugy observations aggregate surface:818 --start 1934-01-01T00:00:00Z \
+    --end 1960-01-01T00:00:00Z --interval yearly --operation avg   # × avg/min/max × 4 windows
+vizugy observations aggregate surface:818 --start 2019-01-01T00:00:00Z \
+    --end 2026-07-18T00:00:00Z --interval monthly --operation avg</pre>
+    <p>These commands are the only data source. The agent then merged the JSON responses and
+       wrote this page’s HTML, CSS, and JavaScript itself — no chart libraries, no build step.</p>
+    <p>Source: Országos Vízügyi Főigazgatóság (OVF) via the public
+       <a href="https://vmservice.vizugy.hu/vraquery/swagger/index.html">VRAQuery API</a> ·
+       station Agárd (818), Velencei-tó, metric “Felszíni vízállás” (surface water level, cm),
+       data type “operatív összefésült” · retrieved 2026-07-18 10:49 (UTC). Levels are centimetres
+       above local gauge zero; 2026 is a partial year — it appears as a detached “to date”
+       marker in the yearly panel (not on the full-year line) and in the monthly panel.
+       Aggregation buckets follow upstream hydrological/local-day boundaries (bucket labels
+       shifted to local time here). Early-decade values predate modern regulation of the lake.
+       Operational values may be preliminary; for checked data follow OVF’s formal data-request process.</p>
+  </footer>
+</div>
+</div>
+<script>
+"use strict";
+const YEARLY = [[1934,17.4,-6.0,42.0],[1935,8.3,-19.0,33.0],[1936,40.0,2.0,60.0],[1937,57.0,29.0,98.0],[1938,39.0,21.0,70.0],[1939,137.1,122.0,163.0],[1940,194.4,158.0,254.0],[1941,171.4,132.0,200.0],[1942,174.0,145.0,222.0],[1943,149.5,122.0,177.0],[1944,171.3,148.0,182.0],[1945,145.4,130.0,172.0],[1946,153.1,126.0,181.0],[1947,171.9,138.0,226.0],[1948,143.2,103.0,166.0],[1949,90.8,63.0,107.0],[1950,96.7,64.0,128.0],[1951,115.4,85.0,139.0],[1952,114.4,87.0,139.0],[1953,146.8,126.0,178.0],[1954,134.0,114.0,155.0],[1955,152.9,129.0,172.0],[1956,143.7,113.0,192.0],[1957,141.2,125.0,160.0],[1958,136.7,117.0,151.0],[1959,135.9,118.0,154.0],[1960,141.0,123.0,162.0],[1961,144.7,109.0,180.0],[1962,127.1,98.0,154.0],[1963,152.3,126.0,244.0],[1964,132.5,105.0,156.0],[1965,154.8,141.0,187.0],[1966,157.8,141.0,178.0],[1967,146.3,124.0,168.0],[1968,118.4,93.0,146.0],[1969,144.0,106.0,179.0],[1970,153.2,122.0,180.0],[1971,142.8,123.0,162.0],[1972,134.9,128.0,144.0],[1973,133.0,113.0,156.0],[1974,131.8,108.0,148.0],[1975,146.7,131.0,164.0],[1976,146.2,134.0,163.0],[1977,144.3,125.0,166.0],[1978,141.7,130.0,150.0],[1979,141.5,124.0,166.0],[1980,140.0,126.0,152.0],[1981,146.6,133.0,160.0],[1982,147.4,133.0,163.0],[1983,145.5,131.0,163.0],[1984,143.2,128.0,154.0],[1985,151.5,127.0,169.0],[1986,151.5,138.0,167.0],[1987,153.2,137.0,172.0],[1988,149.1,133.0,167.0],[1989,136.9,127.0,146.0],[1990,113.9,88.0,133.0],[1991,102.6,87.0,116.0],[1992,106.8,81.0,124.0],[1993,94.6,71.0,114.0],[1994,136.0,115.0,152.0],[1995,143.3,133.0,157.0],[1996,158.6,143.0,176.0],[1997,148.9,129.0,164.0],[1998,151.7,137.0,163.0],[1999,162.6,149.0,181.0],[2000,144.7,122.0,175.0],[2001,140.9,132.0,150.0],[2002,127.2,108.0,144.0],[2003,111.0,81.0,136.0],[2004,108.5,91.0,131.0],[2005,136.6,110.0,164.0],[2006,156.3,138.0,173.0],[2007,141.1,126.0,154.0],[2008,142.6,127.0,158.0],[2009,140.4,120.0,164.0],[2010,159.5,135.0,181.0],[2011,147.4,127.0,166.0],[2012,124.1,100.0,147.0],[2013,133.2,111.0,162.0],[2014,143.0,129.0,160.0],[2015,152.0,133.0,169.0],[2016,157.2,144.0,174.0],[2017,135.2,107.0,161.0],[2018,140.9,123.0,164.0],[2019,134.4,113.0,158.0],[2020,117.1,94.0,141.0],[2021,94.2,71.0,114.0],[2022,65.1,53.0,102.0],[2023,93.3,70.0,112.0],[2024,126.1,107.0,148.0],[2025,98.1,64.0,127.0]];   // [year, mean, min, max] — full years only
+const MONTHLY = [["2019-01",138.1],["2019-02",142.3],["2019-03",140.7],["2019-04",142.0],["2019-05",149.8],["2019-06",152.2],["2019-07",139.4],["2019-08",130.7],["2019-09",121.7],["2019-10",116.5],["2019-11",121.4],["2019-12",129.5],["2020-01",133.1],["2020-02",135.5],["2020-03",139.1],["2020-04",134.4],["2020-05",126.2],["2020-06",123.4],["2020-07",113.7],["2020-08",105.7],["2020-09",98.8],["2020-10",99.8],["2020-11",104.6],["2020-12",105.9],["2021-01",107.8],["2021-02",112.0],["2021-03",110.7],["2021-04",107.6],["2021-05",106.3],["2021-06",101.8],["2021-07",88.2],["2021-08",80.8],["2021-09",74.2],["2021-10",76.8],["2021-11",78.9],["2021-12",85.4],["2022-01",91.7],["2022-02",99.1],["2022-03",99.0],["2022-04",100.2],["2022-05",96.5],["2022-06",88.8],["2022-07",71.6],["2022-08",58.5],["2022-09",55.4],["2022-10",56.8],["2022-11",57.9],["2022-12",67.3],["2023-01",80.0],["2023-02",94.9],["2023-03",101.4],["2023-04",106.6],["2023-05",107.6],["2023-06",105.8],["2023-07",95.9],["2023-08",89.2],["2023-09",80.6],["2023-10",76.6],["2023-11",82.5],["2023-12",100.7],["2024-01",120.0],["2024-02",131.3],["2024-03",139.3],["2024-04",143.1],["2024-05",143.0],["2024-06",144.7],["2024-07",131.6],["2024-08",116.4],["2024-09",109.6],["2024-10",110.5],["2024-11",108.8],["2024-12",112.5],["2025-01",114.7],["2025-02",115.5],["2025-03",119.9],["2025-04",125.0],["2025-05",123.0],["2025-06",112.0],["2025-07",95.5],["2025-08",81.0],["2025-09",71.5],["2025-10",66.5],["2025-11",68.1],["2025-12",72.2],["2026-01",74.2],["2026-02",79.4],["2026-03",79.7],["2026-04",74.0],["2026-05",64.9],["2026-06",54.6],["2026-07",43.0]]; // ["YYYY-MM", mean]
+const P2026 = {"avg":67.5,"min":39.0,"max":84.0};     // {avg, min, max} for 2026 to date (partial year)
+
+const css = n => getComputedStyle(document.querySelector(".viz-root")).getPropertyValue(n).trim();
+const fmt = v => v.toLocaleString("en-US", { maximumFractionDigits: 1 });
+const NS = "http://www.w3.org/2000/svg";
+const M_L = 46; // left chart margin, shared with lineChart's M.l
+
+// ---- stats + tiles ----
+const lowY = YEARLY.reduce((a, b) => (b[1] < a[1] ? b : a));
+const highY = YEARLY.reduce((a, b) => (b[1] > a[1] ? b : a));
+const lastM = MONTHLY[MONTHLY.length - 1];
+const fmtMonth = ym => new Date(ym + "-15T12:00:00Z").toLocaleDateString("en-GB", { month: "short", year: "numeric", timeZone: "UTC" });
+document.getElementById("tiles").innerHTML = `
+  <div class="tile"><div class="label">Record length</div><div class="value">${YEARLY.length}<small> years</small></div><div class="sub">${YEARLY[0][0]}–${YEARLY[YEARLY.length - 1][0]}, gauge Agárd</div></div>
+  <div class="tile"><div class="label">Highest yearly mean</div><div class="value">${fmt(highY[1])}<small> cm</small></div><div class="sub">${highY[0]}</div></div>
+  <div class="tile"><div class="label">Lowest yearly mean</div><div class="value">${fmt(lowY[1])}<small> cm</small></div><div class="sub">${lowY[0]}, before regulation</div></div>
+  <div class="tile"><div class="label">This month so far</div><div class="value">${fmt(lastM[1])}<small> cm</small></div><div class="sub">${fmtMonth(lastM[0])} (partial) — lowest since 1938</div></div>`;
+
+// ---- shared helpers ----
+const el = (svg, tag, attrs) => {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  svg.appendChild(e); return e;
+};
+const txt = (svg, s, attrs) => { const t = el(svg, "text", { class: "chart-text", ...attrs }); t.textContent = s; return t; };
+
+function lineChart({ svgId, tipId, W, H, data, getX, getT, labelX, series, yTickStep, annotate, domainEnd }) {
+  const M = { t: 18, r: 16, b: 30, l: 46 };
+  const svg = document.getElementById(svgId), tip = document.getElementById(tipId);
+  const iw = W - M.l - M.r, ih = H - M.t - M.b;
+  const t0 = getT(data[0]), t1 = domainEnd ?? getT(data[data.length - 1]);
+  const allVals = data.flatMap(r => series.flatMap(s => s.vals(r)));
+  const vMax = Math.ceil(Math.max(...allVals) / yTickStep) * yTickStep;
+  const vMin = Math.min(0, Math.floor(Math.min(...allVals) / yTickStep) * yTickStep);
+  const x = r => M.l + (getT(r) - t0) / (t1 - t0) * iw;
+  const y = v => M.t + ih - (v - vMin) / (vMax - vMin) * ih;
+
+  for (let v = vMin; v <= vMax; v += yTickStep) {
+    el(svg, "line", { x1: M.l, x2: W - M.r, y1: y(v), y2: y(v), stroke: v === 0 ? css("--baseline") : css("--grid"), "stroke-width": 1 });
+    if (v !== 0 || vMin < 0) txt(svg, v.toLocaleString(), { x: M.l - 8, y: y(v) + 4, "text-anchor": "end", "font-size": 12, fill: css("--text-muted") });
+  }
+  for (const r of data) {
+    const lbl = labelX(r);
+    if (lbl) txt(svg, lbl, { x: x(r), y: H - 8, "text-anchor": "middle", "font-size": 12, fill: css("--text-muted") });
+  }
+  const band = series.find(s => s.band), line = series.find(s => !s.band);
+  if (band) {
+    const d = data.map((r, i) => `${i ? "L" : "M"}${x(r).toFixed(1)},${y(band.vals(r)[1]).toFixed(1)}`).join("")
+      + [...data].reverse().map(r => `L${x(r).toFixed(1)},${y(band.vals(r)[0]).toFixed(1)}`).join("") + "Z";
+    el(svg, "path", { d, fill: css("--series-1"), "fill-opacity": 0.13 });
+  }
+  const d = data.map((r, i) => `${i ? "L" : "M"}${x(r).toFixed(1)},${y(line.vals(r)[0]).toFixed(1)}`).join("");
+  el(svg, "path", { d, fill: "none", stroke: css("--series-1"), "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" });
+  if (annotate) annotate(svg, x, y);
+
+  const cross = el(svg, "line", { y1: M.t, y2: H - M.b, stroke: css("--text-muted"), "stroke-width": 1, visibility: "hidden" });
+  const dot = el(svg, "circle", { r: 4.5, fill: css("--series-1"), stroke: css("--surface-1"), "stroke-width": 2, visibility: "hidden" });
+  let idx = -1;
+  const show = i => {
+    idx = Math.max(0, Math.min(data.length - 1, i));
+    const r = data[idx], px = x(r);
+    cross.setAttribute("x1", px); cross.setAttribute("x2", px); cross.setAttribute("visibility", "visible");
+    dot.setAttribute("cx", px); dot.setAttribute("cy", y(line.vals(r)[0])); dot.setAttribute("visibility", "visible");
+    tip.replaceChildren();
+    const dEl = document.createElement("div"); dEl.className = "date"; dEl.textContent = String(getX(r)); tip.appendChild(dEl);
+    for (const s of series) for (const [name, val] of s.rows(r)) {
+      const row = document.createElement("div"); row.className = "row";
+      const key = document.createElement("span"); key.className = "key" + (s.band ? " band" : "");
+      const v = document.createElement("span"); v.className = "val"; v.textContent = fmt(val) + " cm";
+      const n = document.createElement("span"); n.className = "name"; n.textContent = name;
+      row.append(key, v, n); tip.appendChild(row);
+    }
+    tip.style.display = "block";
+    const box = svg.getBoundingClientRect(), card = svg.parentElement.getBoundingClientRect();
+    const left = box.left - card.left + px * (box.width / W);
+    tip.style.left = Math.min(left + 14, card.width - tip.offsetWidth - 8) + "px";
+    tip.style.top = (box.top - card.top + 30) + "px";
+  };
+  const hide = () => { cross.setAttribute("visibility", "hidden"); dot.setAttribute("visibility", "hidden"); tip.style.display = "none"; idx = -1; };
+  svg.addEventListener("pointermove", ev => {
+    const box = svg.getBoundingClientRect();
+    const mx = (ev.clientX - box.left) / box.width * W;
+    show(Math.round((mx - M.l) / iw * (data.length - 1)));
+  });
+  svg.addEventListener("pointerleave", hide);
+  svg.addEventListener("focus", () => show(data.length - 1));
+  svg.addEventListener("blur", hide);
+  svg.addEventListener("keydown", ev => {
+    const step = { ArrowLeft: -1, ArrowRight: 1, PageDown: -10, PageUp: 10, Home: -1e9, End: 1e9 }[ev.key];
+    if (step) { ev.preventDefault(); show((idx < 0 ? data.length - 1 : idx) + step); }
+  });
+}
+
+// ---- yearly chart ----
+lineChart({
+  svgId: "chart-y", tipId: "tip-y", W: 960, H: 380,
+  data: YEARLY,
+  getX: r => r[0], getT: r => r[0],
+  labelX: r => (r[0] % 10 === 0 ? String(r[0]) : null),
+  yTickStep: 50,
+  domainEnd: 2026,
+  series: [
+    { vals: r => [r[1]], rows: r => [["yearly mean", r[1]]] },
+    { band: true, vals: r => [r[2], r[3]], rows: r => [["max", r[3]], ["min", r[2]]] },
+  ],
+  annotate: (svg, x, y) => {
+    const pts = [[lowY, `${lowY[0]} · ${fmt(lowY[1])} cm`, 10, -10, "start"],
+                 [highY, `${highY[0]} · ${fmt(highY[1])} cm`, 0, -12, "middle"],
+                 [YEARLY.find(r => r[0] === 2022), "2022 drought · 65.1 cm", -10, 4, "end"]];
+    for (const [r, label, dx, dy, anchor] of pts) {
+      if (!r) continue;
+      el(svg, "circle", { cx: x(r), cy: y(r[1]), r: 4.5, fill: css("--series-1"), stroke: css("--surface-1"), "stroke-width": 2 });
+      txt(svg, label, { x: x(r) + dx, y: y(r[1]) + dy, "text-anchor": anchor, "font-size": 12, "font-weight": 600, fill: css("--text-primary") });
+    }
+    // 2026 to date: hollow marker + min–max whisker, detached from the full-year line
+    const px = x([2026]);
+    el(svg, "line", { x1: px, x2: px, y1: y(P2026.min), y2: y(P2026.max), stroke: css("--series-1"), "stroke-width": 2, "stroke-linecap": "round", "stroke-opacity": 0.45 });
+    el(svg, "circle", { cx: px, cy: y(P2026.avg), r: 4.5, fill: css("--surface-1"), stroke: css("--series-1"), "stroke-width": 2 });
+    txt(svg, "2026 so far", { x: px, y: y(P2026.min) + 18, "text-anchor": "end", "font-size": 12, "font-weight": 600, fill: css("--text-primary") });
+    txt(svg, `mean ${fmt(P2026.avg)} · min ${fmt(P2026.min)} cm`, { x: px, y: y(P2026.min) + 32, "text-anchor": "end", "font-size": 11.5, fill: css("--text-secondary") });
+    // reference hairline at the 2026 low — only the 1930s band dips below it
+    el(svg, "line", { x1: M_L, x2: px, y1: y(P2026.min), y2: y(P2026.min), stroke: css("--text-muted"), "stroke-width": 1, "stroke-opacity": 0.55 });
+    txt(svg, `2026 low so far · ${fmt(P2026.min)} cm — undercut only in the 1930s`, { x: 500, y: y(P2026.min) - 6, "text-anchor": "middle", "font-size": 11.5, fill: css("--text-secondary") });
+  },
+});
+
+// ---- monthly chart ----
+const mT = ym => Date.parse(ym + "-01");
+lineChart({
+  svgId: "chart-m", tipId: "tip-m", W: 960, H: 260,
+  data: MONTHLY,
+  getX: r => fmtMonth(r[0]), getT: r => mT(r[0]),
+  labelX: r => (r[0].endsWith("-01") ? r[0].slice(0, 4) : null),
+  yTickStep: 50,
+  series: [{ vals: r => [r[1]], rows: r => [["monthly mean", r[1]]] }],
+  annotate: (svg, x, y) => {
+    const r = MONTHLY[MONTHLY.length - 1];
+    el(svg, "circle", { cx: x(r), cy: y(r[1]), r: 4.5, fill: css("--series-1"), stroke: css("--surface-1"), "stroke-width": 2 });
+    txt(svg, `${fmtMonth(r[0])} (partial) · ${fmt(r[1])} cm — lowest since 1938`, { x: x(r) - 10, y: y(r[1]) - 10, "text-anchor": "end", "font-size": 12, "font-weight": 600, fill: css("--text-primary") });
+    const c22 = MONTHLY.find(p => p[0] === "2022-09");
+    if (c22) {
+      el(svg, "circle", { cx: x(c22), cy: y(c22[1]), r: 4.5, fill: css("--series-1"), stroke: css("--surface-1"), "stroke-width": 2 });
+      txt(svg, `2022 crisis floor · ${fmt(c22[1])} cm`, { x: x(c22), y: y(c22[1]) + 20, "text-anchor": "middle", "font-size": 12, "font-weight": 600, fill: css("--text-primary") });
+    }
+  },
+});
+
+// ---- table ----
+const tbody = document.querySelector("#datatable tbody");
+for (const r of [...YEARLY, ["2026 (to 17 Jul)", P2026.avg, P2026.min, P2026.max]]) {
+  const tr = document.createElement("tr");
+  for (const v of [r[0], fmt(r[1]), fmt(r[2]), fmt(r[3])]) {
+    const td = document.createElement("td"); td.textContent = v; tr.appendChild(td);
+  }
+  tbody.appendChild(tr);
+}
+</script>
+</body>
+</html>
