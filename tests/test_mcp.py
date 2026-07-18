@@ -5,7 +5,7 @@ from mcp.client.stdio import stdio_client
 
 @pytest.mark.asyncio
 async def test_stdio_server_exposes_intent_tools():
-    params = StdioServerParameters(command="uv", args=["run", "vizugy-mcp"])
+    params = StdioServerParameters(command="uv", args=["run", "ovf-data-mcp"])
     async with stdio_client(params) as (read, write):
         async with ClientSession(read, write) as session:
             await session.initialize()

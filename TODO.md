@@ -1,6 +1,6 @@
 # Known limitations
 
-`vizugy-mcp` is an experimental proof of concept, not production-ready software.
+`ovf-data-mcp` is an experimental proof of concept, not production-ready software.
 
 - CLI output, MCP schemas, and commands may change without compatibility guarantees.
 - Access depends on the official website's anonymous frontend-token flow. This is not
@@ -13,4 +13,3 @@
 - Coverage results do not yet report sampling gaps, expected result sizes, or freshness
   consistently.
 - Spatial feature queries and series comparison are not implemented.
-

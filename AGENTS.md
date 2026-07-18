@@ -15,9 +15,9 @@ follow the corresponding capability, for example `test_vra_provider.py` and
 Use Python 3.11+ and `uv`:
 
 ```bash
-uv sync --extra mcp --extra test  # install runtime and development dependencies
+uv sync --extra test              # install runtime and development dependencies
 uv run vizugy --help              # inspect or run the CLI
-uv run vizugy-mcp                 # start the stdio MCP server
+uv run ovf-data-mcp               # start the stdio MCP server
 uv run pytest -q                  # run deterministic tests and MCP smoke tests
 uv run ruff format --check src tests
 uv run ruff check src tests

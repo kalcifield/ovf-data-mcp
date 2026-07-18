@@ -1,4 +1,4 @@
-# vizugy-mcp
+# ovf-data-mcp
 
 Agent-friendly, read-only access to public Hungarian water-management data from the
 Országos Vízügyi Főigazgatóság (OVF).
@@ -45,22 +45,36 @@ guaranteed checked data, follow OVF's formal data-request process.
 
 ## Installation
 
-Python 3.11+ and [`uv`](https://docs.astral.sh/uv/) are recommended.
+Run the MCP server directly from PyPI without cloning the repository:
 
 ```bash
-git clone <repository-url> vizugy-mcp
-cd vizugy-mcp
-uv sync --extra mcp --extra test
+uvx ovf-data-mcp
+```
+
+This command becomes available after the first PyPI release.
+
+Add it to Claude Code for the current user:
+
+```bash
+claude mcp add --scope user ovf-data -- uvx ovf-data-mcp
+```
+
+For source development, use Python 3.11+ and [`uv`](https://docs.astral.sh/uv/):
+
+```bash
+git clone https://github.com/kalcifield/ovf-data-mcp.git
+cd ovf-data-mcp
+uv sync --extra test
 ```
 
 Run commands from the checkout:
 
 ```bash
 uv run vizugy --help
-uv run vizugy-mcp
+uv run ovf-data-mcp
 ```
 
-After packaging or installation, use `vizugy` and `vizugy-mcp` directly.
+After packaging or installation, use `vizugy` and `ovf-data-mcp` directly.
 
 ## Quick investigation
 
@@ -200,7 +214,7 @@ Machine-readable output goes to stdout; diagnostics go to stderr.
 Start the local stdio server:
 
 ```bash
-uv run vizugy-mcp
+uv run ovf-data-mcp
 ```
 
 Example client configuration:
@@ -209,8 +223,8 @@ Example client configuration:
 {
   "mcpServers": {
     "vizugy": {
-      "command": "uv",
-      "args": ["--directory", "/path/to/vizugy-mcp", "run", "vizugy-mcp"]
+      "command": "uvx",
+      "args": ["ovf-data-mcp"]
     }
   }
 }
@@ -259,7 +273,7 @@ does not silently claim equivalence.
 ## Development
 
 ```bash
-uv sync --extra mcp --extra test
+uv sync --extra test
 uv run ruff format --check src tests
 uv run ruff check src tests
 uv run ty check src tests
