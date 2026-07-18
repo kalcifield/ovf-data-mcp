@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ovf-data-mcp — example dashboards</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { margin: 0; box-sizing: border-box; }
+  body {
+    --page: #f9f9f7; --surface-1: #fcfcfb;
+    --text-primary: #0b0b0b; --text-secondary: #52514e; --text-muted: #898781;
+    --border: rgba(11,11,11,0.10); --accent: #2a78d6;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page); color: var(--text-primary);
+    min-height: 100vh; padding: 40px 16px 48px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) body {
+      --page: #0d0d0d; --surface-1: #1a1a19;
+      --text-primary: #ffffff; --text-secondary: #c3c2b7; --text-muted: #898781;
+      --border: rgba(255,255,255,0.10); --accent: #3987e5;
+    }
+  }
+  .wrap { max-width: 1000px; margin: 0 auto; }
+  h1 { font-size: 24px; font-weight: 650; }
+  .lede { color: var(--text-secondary); font-size: 15px; margin-top: 8px; max-width: 72ch; line-height: 1.55; }
+  .lede a { color: inherit; }
+  .links { margin-top: 14px; display: flex; gap: 16px; font-size: 14px; }
+  .links a { color: var(--accent); text-decoration: none; font-weight: 600; }
+  .links a:hover { text-decoration: underline; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; margin-top: 28px; }
+  .card {
+    display: block; background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 12px; overflow: hidden; text-decoration: none; color: inherit;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  .card:hover, .card:focus-visible { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.10); }
+  .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .card img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; object-position: top; border-bottom: 1px solid var(--border); }
+  .card .body { padding: 14px 16px 16px; }
+  .card h2 { font-size: 15.5px; font-weight: 650; }
+  .card p { font-size: 13.5px; color: var(--text-secondary); margin-top: 5px; line-height: 1.5; }
+  footer { margin-top: 32px; font-size: 13px; color: var(--text-muted); line-height: 1.6; max-width: 80ch; }
+  footer a { color: inherit; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>ovf-data-mcp — example dashboards</h1>
+  <p class="lede">Self-contained pages built by an AI agent from public Hungarian water-management
+     data (Országos Vízügyi Főigazgatóság), retrieved through the
+     <a href="https://github.com/kalcifield/ovf-data-mcp">ovf-data-mcp</a> CLI and MCP server.
+     Every number is traceable to the <code>vizugy</code> commands listed in each page's footer —
+     no scraping, no chart libraries, no build step.</p>
+  <div class="links">
+    <a href="https://github.com/kalcifield/ovf-data-mcp">GitHub</a>
+    <a href="https://pypi.org/project/ovf-data-mcp/">PyPI</a>
+  </div>
+
+  <div class="grid">
+    <a class="card" href="examples/lake-velence-90-years.html">
+      <img src="examples/lake-velence-90-years.png" alt="Preview of the Lake Velence dashboard: 92-year yearly water-level chart with stat tiles">
+      <div class="body">
+        <h2>Nine decades of Lake Velence</h2>
+        <p>92 years of the Agárd gauge — from the near-dry 1930s to July 2026, now below the
+           2022 crisis floor at a level last seen in 1938.</p>
+      </div>
+    </a>
+    <a class="card" href="examples/danube-flood-wave.html">
+      <img src="examples/danube-flood-wave.png" alt="Preview of the flood-wave dashboard: five stacked gauge panels with peak annotations">
+      <div class="body">
+        <h2>A flood wave travelling down the Danube</h2>
+        <p>Five gauges from Komárom to Mohács track the February 2026 crest across
+           ~320 river-km in three days.</p>
+      </div>
+    </a>
+    <a class="card" href="examples/rivers-drought-scoreboard.html">
+      <img src="examples/rivers-drought-scoreboard.png" alt="Preview of the drought scoreboard: six gauges ranked by position in their 12-month range">
+      <div class="body">
+        <h2>How low are Hungary’s rivers right now?</h2>
+        <p>Six gauges across the Duna, Tisza, Dráva and Balaton, each placed in its own
+           12-month range — all in the bottom tenth.</p>
+      </div>
+    </a>
+    <a class="card" href="examples/danube-water-level.html">
+      <img src="examples/danube-water-level.png" alt="Preview of the Danube at Budapest dashboard: a year of daily water levels with flood-alert line">
+      <div class="body">
+        <h2>Danube at Budapest — last 12 months</h2>
+        <p>Daily mean with min–max range and the flood-alert threshold at the Budapest gauge.</p>
+      </div>
+    </a>
+  </div>
+
+  <footer>
+    <p>Operational data — preliminary, unchecked; for checked data follow OVF’s formal
+       data-request process. Dashboards are static snapshots from the date shown in each footer.</p>
+  </footer>
+</div>
+</body>
+</html>

@@ -72,6 +72,8 @@ More examples, each built the same way:
   ([source](docs/examples/rivers-drought-scoreboard.html)) — six gauges across the
   Duna, Tisza, Dráva and Balaton, each placed in its own 12-month range.
 
+All examples with previews: **[kalcifield.github.io/ovf-data-mcp](https://kalcifield.github.io/ovf-data-mcp/)**
+
 ## Data sources
 
 | Source | Purpose | Status |
