@@ -38,6 +38,25 @@ The CLI is the primary interface; MCP tools are thin adapters over identical ope
 It deliberately does not interpret hydrology, detect anomalies, expose arbitrary SQL,
 or provide unrestricted bulk access. The agent remains responsible for analysis.
 
+## Showcase
+
+What an agent can build from three `vizugy` queries — a self-contained dashboard of a
+year of Danube water levels at Budapest, with daily min–max range, flood-alert
+threshold, and full provenance:
+
+[![Danube water level dashboard](docs/examples/danube-water-level.png)](https://kalcifield.github.io/ovf-data-mcp/examples/danube-water-level.html)
+
+**[View the live dashboard →](https://kalcifield.github.io/ovf-data-mcp/examples/danube-water-level.html)**
+([source](docs/examples/danube-water-level.html)) — every number on the page came from
+these commands, no scraping or manual downloads:
+
+```bash
+vizugy stations search Budapest --watercourse Duna
+vizugy observations aggregate surface:1026 \
+    --start 2025-07-18T00:00:00Z --end 2026-07-18T00:00:00Z \
+    --interval daily --operation avg   # + min, max
+```
+
 ## Data sources
 
 | Source | Purpose | Status |
