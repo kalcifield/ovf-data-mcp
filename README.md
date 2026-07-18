@@ -1,5 +1,7 @@
 # ovf-data-mcp
 
+[![ovf-data — Hungary's water data, made navigable](assets/ovf-data-hero-v2.png)](#ovf-data-mcp)
+
 [![PyPI](https://img.shields.io/pypi/v/ovf-data-mcp)](https://pypi.org/project/ovf-data-mcp/)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
