@@ -131,3 +131,37 @@ async def test_openapi_provider_maps_catalog_units_and_observations():
         assert aggregates[0].value == 52
     finally:
         await provider.close()
+
+
+@pytest.mark.asyncio
+async def test_wells_network_uses_vmo_12_and_well_namespace():
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/token":
+            return httpx.Response(200, json={"access_token": "test"})
+        if request.url.path.endswith("/Vra/InternetVmo/12/true"):
+            return httpx.Response(
+                200,
+                json=[
+                    {
+                        "Tsz": 4321,
+                        "Nev": "Bugac",
+                        "Vizig": 3,
+                        "Uzem": True,
+                        "Lat": 46.687,
+                        "Lon": 19.680,
+                        "MdrNev": None,
+                        "Telepules": "Bugac",
+                    }
+                ],
+            )
+        return httpx.Response(404)
+
+    provider = VRAProvider("https://api.test", "https://auth.test/token")
+    provider.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    try:
+        wells = await provider.stations("wells")
+        assert wells[0].id == "well:4321"
+        with pytest.raises(ValueError, match="unknown network"):
+            await provider.stations("boreholes")
+    finally:
+        await provider.close()

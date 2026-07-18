@@ -115,13 +115,16 @@ def search_stations(
     limit: int = typer.Option(50, min=1, max=1000),
     watercourse: str | None = typer.Option(None, help="Case-insensitive watercourse filter."),
     municipality: str | None = typer.Option(None, help="Case-insensitive municipality filter."),
+    network: str = typer.Option(
+        "surface", help='Station network: "surface" or "wells" (shallow groundwater).'
+    ),
     format: Output = typer.Option(Output.json),
 ) -> None:
     service = create_service()
 
     async def operation():
         try:
-            return await service.find_stations(query, limit, watercourse, municipality)
+            return await service.find_stations(query, limit, watercourse, municipality, network)
         finally:
             await service.close()
 
@@ -133,13 +136,16 @@ def nearest_stations(
     latitude: float,
     longitude: float,
     limit: int = typer.Option(5, min=1, max=100),
+    network: str = typer.Option(
+        "surface", help='Station network: "surface" or "wells" (shallow groundwater).'
+    ),
     format: Output = typer.Option(Output.json),
 ) -> None:
     service = create_service()
 
     async def operation():
         try:
-            return await service.nearest_stations(latitude, longitude, limit)
+            return await service.nearest_stations(latitude, longitude, limit, network)
         finally:
             await service.close()
 

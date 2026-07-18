@@ -9,6 +9,10 @@ from .errors import UpstreamError
 from .models import Coverage, Observation, Provenance, Station
 
 
+# VRAQuery VMO type code and station-ID namespace per network.
+NETWORKS = {"surface": (11, "surface"), "wells": (12, "well")}
+
+
 class VRAProvider:
     """Client for the public VRAQuery OpenAPI 3.0.1 service."""
 
@@ -66,13 +70,16 @@ class VRAProvider:
             self._data_types = await self._request("GET", "Base/AdatTipus")
         return self._metrics, self._data_types
 
-    async def stations(self) -> list[Station]:
-        data = await self._request("GET", "Vra/InternetVmo/11/true")
-        source = f"{self.base_url}/Vra/InternetVmo/11/true"
+    async def stations(self, network: str = "surface") -> list[Station]:
+        if network not in NETWORKS:
+            raise ValueError(f"unknown network: {network}; expected one of: {', '.join(NETWORKS)}")
+        vmo_type, prefix = NETWORKS[network]
+        data = await self._request("GET", f"Vra/InternetVmo/{vmo_type}/true")
+        source = f"{self.base_url}/Vra/InternetVmo/{vmo_type}/true"
         retrieved = datetime.now(UTC).isoformat()
         return [
             Station(
-                id=f"surface:{item['Tsz']}",
+                id=f"{prefix}:{item['Tsz']}",
                 registry_number=item["Tsz"],
                 name=item["Nev"],
                 watercourse=item.get("MdrNev"),
@@ -95,7 +102,12 @@ class VRAProvider:
 
     async def resolve_metric(self, value: str) -> dict[str, Any]:
         metrics, _ = await self.catalogs()
-        aliases = {"water-level": 68, "discharge": 87, "water-temperature": 85}
+        aliases = {
+            "water-level": 68,
+            "discharge": 87,
+            "water-temperature": 85,
+            "groundwater-level": 69,
+        }
         code = aliases.get(value.casefold())
         if code is None and value.isdigit():
             code = int(value)

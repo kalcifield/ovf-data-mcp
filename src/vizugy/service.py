@@ -59,10 +59,11 @@ class VizugyService:
         limit: int = 50,
         watercourse: str | None = None,
         municipality: str | None = None,
+        network: str = "surface",
     ) -> StationPage:
         if not 1 <= limit <= 1000:
             raise ValueError("limit must be between 1 and 1000")
-        items = await self._vra().stations()
+        items = await self._vra().stations(network)
         if query:
             needle = query.casefold()
             items = [
@@ -96,9 +97,9 @@ class VizugyService:
         )
 
     async def nearest_stations(
-        self, latitude: float, longitude: float, limit: int = 5
+        self, latitude: float, longitude: float, limit: int = 5, network: str = "surface"
     ) -> StationPage:
-        items = await self._vra().stations()
+        items = await self._vra().stations(network)
 
         def distance(item: Station) -> float:
             lat1, lat2 = math.radians(latitude), math.radians(item.latitude)
@@ -133,23 +134,39 @@ class VizugyService:
         }
 
     async def resolve_station(self, station_query: str) -> Station:
-        items = await self._vra().stations()
-        exact = [item for item in items if item.id.casefold() == station_query.casefold()]
-        if exact:
-            return exact[0]
         needle = station_query.casefold()
-        matches = [
-            item
-            for item in items
-            if needle
-            in " ".join(filter(None, [item.name, item.watercourse, item.municipality])).casefold()
-        ]
-        if len(matches) == 1:
-            return matches[0]
-        if not matches:
-            raise NotFoundError(station_query)
-        options = ", ".join(f"{item.id} ({item.name})" for item in matches[:5])
-        raise ValueError(f"ambiguous station; use its station ID. Matches: {options}")
+        if needle.startswith("well:"):
+            networks = ["wells"]
+        elif needle.startswith("surface:"):
+            networks = ["surface"]
+        else:
+            networks = ["surface", "wells"]
+        for network in networks:
+            items = await self._vra().stations(network)
+            exact = [item for item in items if item.id.casefold() == needle]
+            if exact:
+                return exact[0]
+            matches = [
+                item
+                for item in items
+                if needle
+                in " ".join(
+                    filter(None, [item.name, item.watercourse, item.municipality])
+                ).casefold()
+            ]
+            if len(matches) == 1:
+                return matches[0]
+            if matches:
+                options = ", ".join(f"{item.id} ({item.name})" for item in matches[:5])
+                raise ValueError(f"ambiguous station; use its station ID. Matches: {options}")
+        raise NotFoundError(station_query)
+
+    @staticmethod
+    def _network_metric(station: Station, metric: str) -> str:
+        # Wells measure Talajvízállás (69); the surface default would silently return nothing.
+        if station.id.startswith("well:") and metric.casefold() == "water-level":
+            return "groundwater-level"
+        return metric
 
     @staticmethod
     def _bounds(start: datetime | None, end: datetime | None) -> tuple[datetime, datetime]:
@@ -176,6 +193,7 @@ class VizugyService:
     ) -> QueryPlan:
         start, end = self._bounds(start, end)
         station = await self.resolve_station(station_query)
+        metric = self._network_metric(station, metric)
         metric_item = await self._vra().resolve_metric(metric)
         data_type_item = await self._vra().resolve_data_type(data_type)
         duration = (end - start).total_seconds() / 86400
@@ -207,7 +225,7 @@ class VizugyService:
 
     async def inspect_coverage(self, station_query: str, metric: str, data_type: str) -> Coverage:
         station = await self.resolve_station(station_query)
-        return await self._vra().coverage(station, metric, data_type)
+        return await self._vra().coverage(station, self._network_metric(station, metric), data_type)
 
     async def get_observations(
         self,
@@ -226,7 +244,12 @@ class VizugyService:
         start_dt = datetime.fromisoformat(plan.start)
         end_dt = datetime.fromisoformat(plan.end)
         items, total = await self._vra().observations(
-            plan.station, metric, data_type, start_dt, end_dt, limit
+            plan.station,
+            self._network_metric(plan.station, metric),
+            data_type,
+            start_dt,
+            end_dt,
+            limit,
         )
         plan.will_fetch = True
         provenance = items[0].provenance if items else plan.station.provenance
@@ -277,7 +300,7 @@ class VizugyService:
             raise ValueError("aggregation may exceed 1000 buckets; narrow the interval")
         items = await self._vra().aggregate_observations(
             plan.station,
-            metric,
+            self._network_metric(plan.station, metric),
             data_type,
             datetime.fromisoformat(plan.start),
             datetime.fromisoformat(plan.end),

@@ -41,22 +41,31 @@ def build_server():
         limit: int = 50,
         watercourse: str | None = None,
         municipality: str | None = None,
+        network: str = "surface",
     ) -> dict:
-        """Find surface-water gauges by registry ID, name, watercourse, or municipality."""
+        """Find gauges by registry ID, name, watercourse, or municipality.
+
+        network: "surface" (rivers and lakes) or "wells" (shallow groundwater).
+        """
         service = create_service()
         try:
             return (
-                await service.find_stations(query, limit, watercourse, municipality)
+                await service.find_stations(query, limit, watercourse, municipality, network)
             ).model_dump(mode="json")
         finally:
             await service.close()
 
     @mcp.tool()
-    async def nearest_stations(latitude: float, longitude: float, limit: int = 5) -> dict:
-        """Find public gauges nearest a WGS84 latitude/longitude."""
+    async def nearest_stations(
+        latitude: float, longitude: float, limit: int = 5, network: str = "surface"
+    ) -> dict:
+        """Find public gauges nearest a WGS84 latitude/longitude.
+
+        network: "surface" (rivers and lakes) or "wells" (shallow groundwater).
+        """
         service = create_service()
         try:
-            return (await service.nearest_stations(latitude, longitude, limit)).model_dump(
+            return (await service.nearest_stations(latitude, longitude, limit, network)).model_dump(
                 mode="json"
             )
         finally:
