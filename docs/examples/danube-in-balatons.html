@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="hu">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>A year of the Danube, measured in Balatons | ovf-data-mcp example</title>
+<title>A Duna egy éve, Balatonban mérve | ovf-data-mcp példa</title>
 <style>
   * { margin: 0; box-sizing: border-box; }
   .viz-root {
@@ -59,57 +59,57 @@
 <div class="viz-root">
 <div class="wrap">
   <header>
-    <h1>A year of the Danube, measured in Balatons</h1>
-    <p>Daily mean discharge of the Danube at Budapest, 18 Jul 2025 – 17 Jul 2026 — and what it adds up to.
-       Even in a drought year, 47 km³ of water flowed through the city: roughly one
-       Lake Balaton every 15 days. Public OVF data retrieved by an AI agent through
-       <a href="https://github.com/kalcifield/ovf-data-mcp">ovf-data-mcp</a>. Operational data — preliminary, unchecked.</p>
+    <h1>A Duna egy éve, Balatonban mérve</h1>
+    <p>A Duna napi középvízhozama Budapestnél 2025. július 18. és 2026. július 17. között — és az összegük.
+       Még ebben az aszályos évben is 47 km³ víz folyt át a városon: nagyjából 15 naponta
+       egy Balatonnyi. Nyilvános OVF-adatok, amelyeket egy MI-ügynök ért el az
+       <a href="https://github.com/kalcifield/ovf-data-mcp">ovf-data-mcp</a> segítségével. Az operatív adatok előzetesek, nem ellenőrzöttek.</p>
   </header>
 
   <div class="tiles" id="tiles"></div>
 
   <div class="card">
-    <h2>Daily mean discharge (m³/s)</h2>
-    <p class="sub">Gauge Budapest (1026) · hover or focus + arrow keys for values</p>
+    <h2>Napi középvízhozam (m³/s)</h2>
+    <p class="sub">Budapest vízmérce (1026) · az értékekhez vigye fölé az egeret, vagy fókuszáljon és használja a nyílbillentyűket</p>
     <svg id="chart-q" viewBox="0 0 960 300" role="img" tabindex="0"
-         aria-label="Line chart of daily mean discharge of the Danube at Budapest over the last 12 months. The February 2026 flood peaks at about 4,100 cubic metres per second; by mid-July 2026 flow falls below 900, the driest day of the year. Full values in the data table below."></svg>
+         aria-label="Vonaldiagram a Duna Budapestnél mért napi középvízhozamáról az elmúlt 12 hónapban. A 2026. februári árhullám mintegy 4100 köbméter per másodpercnél tetőzik; 2026 júliusának közepére a vízhozam 900 alá csökken. A teljes adatsor az alábbi táblázatban található."></svg>
     <div class="tooltip" id="tip-q"></div>
   </div>
 
   <div class="card">
-    <h2>Cumulative volume through the year (km³)</h2>
-    <p class="sub">Right-edge labels mark every fifth Lake Balaton (1 Balaton ≈ 1.9 km³) · hover or focus + arrow keys for values</p>
+    <h2>Az év során átfolyt összes víztérfogat (km³)</h2>
+    <p class="sub">A jobb oldali címkék minden ötödik Balatonnyit jelölnek (1 Balaton ≈ 1,9 km³) · egér vagy billentyűzet az értékekhez</p>
     <svg id="chart-v" viewBox="0 0 960 320" role="img" tabindex="0"
-         aria-label="Area chart of cumulative water volume passing Budapest over the year, rising to 47 cubic kilometres — about 25 times the volume of Lake Balaton. Gridlines mark every fifth Balaton-volume. Full values in the data table below."></svg>
+         aria-label="Területdiagram a Budapestnél egy év alatt átfolyt összes víztérfogatról, amely eléri a 47 köbkilométert, vagyis mintegy 25 Balaton térfogatát. A segédvonalak minden ötödik Balatonnyit jelölnek. A teljes adatsor az alábbi táblázatban található."></svg>
     <div class="tooltip" id="tip-v"></div>
   </div>
 
   <details>
-    <summary>Data table — daily discharge and cumulative volume</summary>
+    <summary>Adattábla — napi vízhozam és összesített víztérfogat</summary>
     <div class="tablebox"><table id="datatable">
-      <thead><tr><th>Date</th><th>Discharge (m³/s)</th><th>Cumulative (km³)</th><th>Balatons</th></tr></thead>
+      <thead><tr><th>Dátum</th><th>Vízhozam (m³/s)</th><th>Összesen (km³)</th><th>Balaton</th></tr></thead>
       <tbody></tbody>
     </table></div>
   </details>
 
   <footer>
-    <h3>How this page was made</h3>
-    <p>An agent ran one server-side aggregation for the discharge metric — the coverage
-       check shows this gauge's discharge record goes back to 1924:</p>
+    <h3>Hogyan készült ez az oldal?</h3>
+    <p>Az ügynök egy szerveroldali összesítést futtatott a vízhozamra — a lefedettség
+       ellenőrzése szerint a vízmérce adatsora 1924-ig nyúlik vissza:</p>
     <pre>vizugy observations coverage surface:1026 --metric discharge   # available from 1924
 vizugy observations aggregate surface:1026 --metric discharge \
     --start 2025-07-18T00:00:00Z --end 2026-07-18T00:00:00Z \
     --interval daily --operation avg</pre>
-    <p>These commands are the only data source. The agent then integrated the daily means
-       (m³/s × 86,400 s) into volumes and wrote this page’s HTML, CSS, and JavaScript itself —
-       no chart libraries, no build step.</p>
-    <p>Source: Országos Vízügyi Főigazgatóság (OVF) via the public
+    <p>Az adatok kizárólag ezekből a parancsokból származnak. Az ügynök a napi középértékeket
+       (m³/s × 86 400 s) víztérfogattá összegezte, majd maga írta meg az oldal HTML-, CSS- és
+       JavaScript-kódját — diagramkönyvtár és buildelés nélkül.</p>
+    <p>Forrás: Országos Vízügyi Főigazgatóság (OVF), a nyilvános
        <a href="https://vmservice.vizugy.hu/vraquery/swagger/index.html">VRAQuery API</a> ·
-       station Budapest (1026), Duna, metric “Felszíni vízhozam” (discharge, m³/s), data type
-       “operatív összefésült” · retrieved 2026-07-18 11:29 (UTC). Lake Balaton’s volume is taken
-       as ≈1.9 km³ (a commonly cited approximation; it varies with the lake’s level).
-       Cumulative volume integrates daily means, so sub-daily variation is smoothed.
-       Operational values may be preliminary; for checked data follow OVF’s formal data-request process.</p>
+       Budapest állomás (1026), Duna, „Felszíni vízhozam” mutató (m³/s), „operatív összefésült”
+       adattípus · lekérdezve: 2026-07-18 11:29 (UTC). A Balaton térfogata itt ≈1,9 km³;
+       ez gyakran idézett közelítés, amely a vízállással változik. Az összesített térfogat napi
+       középértékekből készül, így a napon belüli ingadozást kisimítja. Ellenőrzött adatokért
+       kövesse az OVF hivatalos adatigénylési folyamatát.</p>
   </footer>
 </div>
 </div>
@@ -119,8 +119,8 @@ const DATA = [["2025-07-17",1502.8],["2025-07-18",1849.1],["2025-07-19",1993.7],
 const BALATON = 1.9;   // km³, approximate
 
 const css = n => getComputedStyle(document.querySelector(".viz-root")).getPropertyValue(n).trim();
-const fmt = (v, d = 0) => v.toLocaleString("en-US", { maximumFractionDigits: d });
-const fmtDate = d => new Date(d + "T12:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+const fmt = (v, d = 0) => v.toLocaleString("hu-HU", { maximumFractionDigits: d });
+const fmtDate = d => new Date(d + "T12:00:00Z").toLocaleDateString("hu-HU", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
 const NS = "http://www.w3.org/2000/svg";
 
 // cumulative km³
@@ -131,10 +131,10 @@ const peak = DATA.reduce((a, b) => (b[1] > a[1] ? b : a));
 const low = DATA.reduce((a, b) => (b[1] < a[1] ? b : a));
 
 document.getElementById("tiles").innerHTML = `
-  <div class="tile"><div class="label">Water past Budapest in a year</div><div class="value">${fmt(total, 1)}<small> km³</small></div><div class="sub">integrated from daily means</div></div>
-  <div class="tile"><div class="label">In Lake Balatons</div><div class="value">≈${fmt(balatons, 0)}</div><div class="sub">one Balaton every ~${fmt(366 / balatons, 0)} days</div></div>
-  <div class="tile"><div class="label">Biggest day</div><div class="value">${fmt(peak[1])}<small> m³/s</small></div><div class="sub">${fmtDate(peak[0])}, flood crest</div></div>
-  <div class="tile"><div class="label">Driest day</div><div class="value">${fmt(low[1])}<small> m³/s</small></div><div class="sub">${fmtDate(low[0])} — ${(peak[1] / low[1]).toFixed(1)}× less than the crest</div></div>`;
+  <div class="tile"><div class="label">Budapestnél átfolyt éves vízmennyiség</div><div class="value">${fmt(total, 1)}<small> km³</small></div><div class="sub">napi középértékekből összegezve</div></div>
+  <div class="tile"><div class="label">Balatonban kifejezve</div><div class="value">≈${fmt(balatons, 0)}</div><div class="sub">~${fmt(366 / balatons, 0)} naponta egy Balaton</div></div>
+  <div class="tile"><div class="label">Legnagyobb vízhozamú nap</div><div class="value">${fmt(peak[1])}<small> m³/s</small></div><div class="sub">${fmtDate(peak[0])}, árvízi tetőzés</div></div>
+  <div class="tile"><div class="label">Legkisebb vízhozamú nap</div><div class="value">${fmt(low[1])}<small> m³/s</small></div><div class="sub">${fmtDate(low[0])} — a tetőzés ${fmt(peak[1] / low[1], 1)}-szerese</div></div>`;
 
 const el = (svg, tag, attrs) => {
   const e = document.createElementNS(NS, tag);
@@ -160,7 +160,7 @@ function chart({ svgId, tipId, H, val, unit, dec, axisDec = 0, yStep, area, mark
   if (marks) marks(svg, x, y, M, W);
   for (const r of CUM) {
     if (r[0].endsWith("-01")) {
-      const lbl = new Date(r[0] + "T12:00:00Z").toLocaleDateString("en-GB", { month: "short", timeZone: "UTC" });
+      const lbl = new Date(r[0] + "T12:00:00Z").toLocaleDateString("hu-HU", { month: "short", timeZone: "UTC" });
       txt(svg, lbl + (r[0].endsWith("-01-01") ? " ’26" : ""), { x: x(r), y: H - 8, "text-anchor": "middle", "font-size": 12, fill: css("--text-muted") });
     }
   }
@@ -223,14 +223,14 @@ chart({
     const vMax = CUM[CUM.length - 1][2];
     for (let b = 1; b * BALATON <= vMax + BALATON; b++) {
       if (b % 5 === 0) {
-        txt(svg, `${b} Balatons`, { x: W - M.r, y: y(b * BALATON) - 5, "text-anchor": "end", "font-size": 11.5, fill: css("--text-secondary") });
+        txt(svg, `${b} Balaton`, { x: W - M.r, y: y(b * BALATON) - 5, "text-anchor": "end", "font-size": 11.5, fill: css("--text-secondary") });
       }
     }
   },
   annotate: (svg, x, y) => {
     const last = CUM[CUM.length - 1];
     el(svg, "circle", { cx: x(last), cy: y(last[2]), r: 4.5, fill: css("--series-1"), stroke: css("--surface-1"), "stroke-width": 2 });
-    txt(svg, `${fmt(last[2], 1)} km³ ≈ ${fmt(last[2] / BALATON, 0)} Balatons`, { x: x(last) - 10, y: y(last[2]) + 18, "text-anchor": "end", "font-size": 12.5, "font-weight": 600, fill: css("--text-primary") });
+    txt(svg, `${fmt(last[2], 1)} km³ ≈ ${fmt(last[2] / BALATON, 0)} Balaton`, { x: x(last) - 10, y: y(last[2]) + 18, "text-anchor": "end", "font-size": 12.5, "font-weight": 600, fill: css("--text-primary") });
   },
 });
 

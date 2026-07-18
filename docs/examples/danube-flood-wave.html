@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="hu">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>A flood wave travelling down the Danube | ovf-data-mcp example</title>
+<title>Egy árhullám útja a Dunán | ovf-data-mcp példa</title>
 <style>
   * { margin: 0; box-sizing: border-box; }
   .viz-root {
@@ -59,43 +59,42 @@
 <div class="viz-root">
 <div class="wrap">
   <header>
-    <h1>A flood wave travelling down the Danube</h1>
-    <p>February 2026: one flood wave, five gauges, ~320 river-kilometres. Daily mean water level at each
-       gauge, upstream to downstream — the crest passes Komárom on 25 Feb and reaches Mohács
-       three days later. Public OVF data retrieved by an AI agent through
-       <a href="https://github.com/kalcifield/ovf-data-mcp">ovf-data-mcp</a>. Operational data — preliminary, unchecked.</p>
+    <h1>Egy árhullám útja a Dunán</h1>
+    <p>2026 februárja: egy árhullám, öt vízmérce, mintegy 320 folyamkilométer. Napi középvízállás
+       felvíztől alvíz felé — a tetőzés február 25-én halad el Komárom mellett, és három nappal
+       később éri el Mohácsot. Nyilvános OVF-adatok, amelyeket egy MI-ügynök ért el az
+       <a href="https://github.com/kalcifield/ovf-data-mcp">ovf-data-mcp</a> segítségével. Az operatív adatok előzetesek, nem ellenőrzöttek.</p>
   </header>
 
   <div class="tiles" id="tiles"></div>
 
   <div class="card">
-    <h2>Daily mean water level, 1 Feb – 24 Mar 2026 (cm, local gauge zero)</h2>
-    <p class="sub">One panel per gauge, upstream → downstream · y-scales differ (each gauge has its own datum) · hover or focus + arrow keys for values</p>
+    <h2>Napi középvízállás, 2026. február 1. – március 24. (cm, helyi vízmérce-nullpont)</h2>
+    <p class="sub">Vízmércénként egy panel, felvíz → alvíz · az y-skálák eltérnek · az értékekhez vigye fölé az egeret, vagy fókuszáljon és használja a nyílbillentyűket</p>
     <svg id="chart" viewBox="0 0 960 640" role="img" tabindex="0"
-         aria-label="Five stacked line charts of daily Danube water level in February and March 2026, ordered upstream to downstream: Komárom, Esztergom, Budapest, Baja, Mohács. Each panel marks its flood peak: Komárom and Esztergom peak on 25 February, Budapest on 26 February, Baja and Mohács on 28 February, showing the flood wave travelling downstream in three days. Full values in the data table below."></svg>
+         aria-label="Öt egymás alatti vonaldiagram a Duna napi vízállásáról 2026 februárjában és márciusában, felvíztől alvíz felé: Komárom, Esztergom, Budapest, Baja, Mohács. A jelölt tetőzések háromnapos levonulást mutatnak. A teljes adatsor az alábbi táblázatban található."></svg>
     <div class="tooltip" id="tooltip"></div>
   </div>
 
   <details>
-    <summary>Data table — daily means, all five gauges</summary>
+    <summary>Adattábla — napi középértékek, mind az öt vízmérce</summary>
     <div class="tablebox"><table id="datatable"><thead></thead><tbody></tbody></table></div>
   </details>
 
   <footer>
-    <h3>How this page was made</h3>
-    <p>An agent resolved five gauges along the Duna, then ran one bounded server-side aggregation per gauge:</p>
+    <h3>Hogyan készült ez az oldal?</h3>
+    <p>Az ügynök azonosított öt dunai vízmércét, majd mindegyikhez egy korlátozott, szerveroldali összesítést futtatott:</p>
     <pre>vizugy stations search "" --watercourse Duna --limit 100
 vizugy observations aggregate surface:5 --start 2026-02-01T00:00:00Z \
     --end 2026-03-25T00:00:00Z --interval daily --operation avg   # × 5 gauges</pre>
-    <p>These commands are the only data source. The agent then merged the JSON responses and
-       wrote this page’s HTML, CSS, and JavaScript itself — no chart libraries, no build step.</p>
-    <p>Source: Országos Vízügyi Főigazgatóság (OVF) via the public
+    <p>Az adatok kizárólag ezekből a parancsokból származnak. Az ügynök egyesítette a JSON-válaszokat,
+       majd maga írta meg az oldal HTML-, CSS- és JavaScript-kódját — diagramkönyvtár és buildelés nélkül.</p>
+    <p>Forrás: Országos Vízügyi Főigazgatóság (OVF), a nyilvános
        <a href="https://vmservice.vizugy.hu/vraquery/swagger/index.html">VRAQuery API</a> ·
-       metric “Felszíni vízállás” (surface water level, cm), data type “operatív összefésült” ·
-       retrieved 2026-07-18 10:37 (UTC). Levels are relative to each gauge’s local zero and are not
-       comparable across gauges; river-km positions are approximate. Aggregation buckets follow
-       upstream hydrological-day boundaries. Operational values may be preliminary; for checked
-       data follow OVF’s formal data-request process.</p>
+       „Felszíni vízállás” mutató (cm), „operatív összefésült” adattípus · lekérdezve: 2026-07-18 10:37 (UTC).
+       A vízállások az egyes vízmércék helyi nullpontjához viszonyítottak, ezért egymással nem
+       hasonlíthatók össze; a folyamkilométerek közelítőek. Az összesítési időszakok az adatforrás
+       hidrológiai napjait követik. Ellenőrzött adatokért kövesse az OVF hivatalos adatigénylési folyamatát.</p>
   </footer>
 </div>
 </div>
@@ -105,8 +104,8 @@ vizugy observations aggregate surface:5 --start 2026-02-01T00:00:00Z \
 const GAUGES = [{"name":"Komárom","rkm":1767.8,"rows":[["2026-01-31",43.7],["2026-02-01",29.0],["2026-02-02",38.2],["2026-02-03",39.2],["2026-02-04",38.5],["2026-02-05",41.8],["2026-02-06",43.0],["2026-02-07",42.7],["2026-02-08",62.2],["2026-02-09",76.8],["2026-02-10",95.5],["2026-02-11",91.6],["2026-02-12",104.3],["2026-02-13",139.2],["2026-02-14",180.7],["2026-02-15",175.7],["2026-02-16",168.1],["2026-02-17",180.8],["2026-02-18",202.7],["2026-02-19",190.6],["2026-02-20",167.5],["2026-02-21",164.9],["2026-02-22",232.9],["2026-02-23",327.1],["2026-02-24",401.2],["2026-02-25",426.8],["2026-02-26",408.5],["2026-02-27",370.7],["2026-02-28",325.8],["2026-03-01",279.8],["2026-03-02",252.0],["2026-03-03",233.2],["2026-03-04",210.4],["2026-03-05",199.0],["2026-03-06",184.6],["2026-03-07",161.2],["2026-03-08",149.4],["2026-03-09",140.8],["2026-03-10",141.7],["2026-03-11",132.6],["2026-03-12",122.3],["2026-03-13",122.2],["2026-03-14",118.5],["2026-03-15",108.1],["2026-03-16",109.4],["2026-03-17",105.2],["2026-03-18",102.1],["2026-03-19",97.2],["2026-03-20",92.8],["2026-03-21",84.6],["2026-03-22",73.9],["2026-03-23",72.3],["2026-03-24",70.5]]},{"name":"Esztergom","rkm":1718.5,"rows":[["2026-01-31",44.1],["2026-02-01",28.8],["2026-02-02",28.6],["2026-02-03",33.8],["2026-02-04",31.0],["2026-02-05",34.6],["2026-02-06",42.8],["2026-02-07",42.1],["2026-02-08",53.2],["2026-02-09",65.7],["2026-02-10",84.5],["2026-02-11",87.3],["2026-02-12",91.3],["2026-02-13",114.8],["2026-02-14",158.0],["2026-02-15",163.0],["2026-02-16",156.0],["2026-02-17",158.6],["2026-02-18",178.4],["2026-02-19",179.4],["2026-02-20",157.9],["2026-02-21",146.0],["2026-02-22",180.0],["2026-02-23",274.8],["2026-02-24",354.0],["2026-02-25",399.6],["2026-02-26",392.2],["2026-02-27",362.0],["2026-02-28",317.3],["2026-03-01",271.7],["2026-03-02",239.0],["2026-03-03",219.6],["2026-03-04",197.0],["2026-03-05",182.3],["2026-03-06",170.6],["2026-03-07",150.0],["2026-03-08",136.0],["2026-03-09",126.6],["2026-03-10",124.6],["2026-03-11",118.8],["2026-03-12",109.2],["2026-03-13",106.1],["2026-03-14",102.6],["2026-03-15",95.5],["2026-03-16",93.1],["2026-03-17",90.5],["2026-03-18",89.5],["2026-03-19",83.0],["2026-03-20",78.2],["2026-03-21",73.5],["2026-03-22",64.0],["2026-03-23",62.6],["2026-03-24",60.5]]},{"name":"Budapest","rkm":1646.5,"rows":[["2026-01-31",102.0],["2026-02-01",89.5],["2026-02-02",76.1],["2026-02-03",79.0],["2026-02-04",80.2],["2026-02-05",80.8],["2026-02-06",88.1],["2026-02-07",94.3],["2026-02-08",95.1],["2026-02-09",107.4],["2026-02-10",121.5],["2026-02-11",136.0],["2026-02-12",138.9],["2026-02-13",150.4],["2026-02-14",185.5],["2026-02-15",216.9],["2026-02-16",216.8],["2026-02-17",213.4],["2026-02-18",224.8],["2026-02-19",237.7],["2026-02-20",228.2],["2026-02-21",209.5],["2026-02-22",213.4],["2026-02-23",291.9],["2026-02-24",387.7],["2026-02-25",459.5],["2026-02-26",475.0],["2026-02-27",456.3],["2026-02-28",415.1],["2026-03-01",367.0],["2026-03-02",322.5],["2026-03-03",294.9],["2026-03-04",271.5],["2026-03-05",250.2],["2026-03-06",237.2],["2026-03-07",220.3],["2026-03-08",200.8],["2026-03-09",187.8],["2026-03-10",180.2],["2026-03-11",178.2],["2026-03-12",171.2],["2026-03-13",162.1],["2026-03-14",158.0],["2026-03-15",155.1],["2026-03-16",148.7],["2026-03-17",145.9],["2026-03-18",142.8],["2026-03-19",140.2],["2026-03-20",135.1],["2026-03-21",129.8],["2026-03-22",122.4],["2026-03-23",114.6],["2026-03-24",113.5]]},{"name":"Baja","rkm":1478.7,"rows":[["2026-01-31",115.0],["2026-02-01",119.4],["2026-02-02",112.1],["2026-02-03",99.8],["2026-02-04",92.1],["2026-02-05",91.1],["2026-02-06",91.0],["2026-02-07",94.6],["2026-02-08",102.4],["2026-02-09",105.9],["2026-02-10",113.5],["2026-02-11",128.5],["2026-02-12",146.5],["2026-02-13",156.3],["2026-02-14",166.6],["2026-02-15",194.5],["2026-02-16",232.2],["2026-02-17",248.3],["2026-02-18",250.1],["2026-02-19",259.4],["2026-02-20",274.2],["2026-02-21",273.1],["2026-02-22",257.9],["2026-02-23",254.7],["2026-02-24",313.3],["2026-02-25",422.0],["2026-02-26",517.7],["2026-02-27",566.0],["2026-02-28",576.0],["2026-03-01",554.8],["2026-03-02",509.9],["2026-03-03",454.0],["2026-03-04",404.9],["2026-03-05",364.8],["2026-03-06",330.6],["2026-03-07",304.4],["2026-03-08",280.5],["2026-03-09",254.1],["2026-03-10",232.8],["2026-03-11",217.8],["2026-03-12",209.2],["2026-03-13",201.1],["2026-03-14",191.0],["2026-03-15",184.1],["2026-03-16",180.5],["2026-03-17",174.6],["2026-03-18",168.3],["2026-03-19",163.5],["2026-03-20",159.4],["2026-03-21",154.6],["2026-03-22",148.6],["2026-03-23",140.7],["2026-03-24",135.5]]},{"name":"Mohács","rkm":1446.9,"rows":[["2026-01-31",126.1],["2026-02-01",136.2],["2026-02-02",132.9],["2026-02-03",122.0],["2026-02-04",112.2],["2026-02-05",108.1],["2026-02-06",107.0],["2026-02-07",109.6],["2026-02-08",116.9],["2026-02-09",122.0],["2026-02-10",127.0],["2026-02-11",139.7],["2026-02-12",156.8],["2026-02-13",168.5],["2026-02-14",176.5],["2026-02-15",198.5],["2026-02-16",233.0],["2026-02-17",253.9],["2026-02-18",259.8],["2026-02-19",267.3],["2026-02-20",282.1],["2026-02-21",286.5],["2026-02-22",276.9],["2026-02-23",268.7],["2026-02-24",303.9],["2026-02-25",395.4],["2026-02-26",492.4],["2026-02-27",552.0],["2026-02-28",573.5],["2026-03-01",565.1],["2026-03-02",531.0],["2026-03-03",482.3],["2026-03-04",434.0],["2026-03-05",394.4],["2026-03-06",359.0],["2026-03-07",330.6],["2026-03-08",306.9],["2026-03-09",280.2],["2026-03-10",257.4],["2026-03-11",239.9],["2026-03-12",229.5],["2026-03-13",221.2],["2026-03-14",211.8],["2026-03-15",202.8],["2026-03-16",197.7],["2026-03-17",192.5],["2026-03-18",187.1],["2026-03-19",182.0],["2026-03-20",178.2],["2026-03-21",174.0],["2026-03-22",168.5],["2026-03-23",161.0],["2026-03-24",156.0]]}];
 
 const css = n => getComputedStyle(document.querySelector(".viz-root")).getPropertyValue(n).trim();
-const fmt = v => v.toLocaleString("en-US", { maximumFractionDigits: 1 });
-const fmtDate = d => new Date(d + "T12:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+const fmt = v => v.toLocaleString("hu-HU", { maximumFractionDigits: 1 });
+const fmtDate = d => new Date(d + "T12:00:00Z").toLocaleDateString("hu-HU", { day: "numeric", month: "short", timeZone: "UTC" });
 
 // peaks + tiles
 for (const g of GAUGES) g.peak = g.rows.reduce((a, b) => (b[1] > a[1] ? b : a));
@@ -114,10 +113,10 @@ const first = GAUGES[0], last = GAUGES[GAUGES.length - 1];
 const lagDays = Math.round((Date.parse(last.peak[0]) - Date.parse(first.peak[0])) / 86400000);
 const rkm = Math.round(first.rkm - last.rkm);
 document.getElementById("tiles").innerHTML = `
-  <div class="tile"><div class="label">Crest travel time</div><div class="value">${lagDays}<small> days</small></div><div class="sub">${first.name} → ${last.name}</div></div>
-  <div class="tile"><div class="label">Distance travelled</div><div class="value">≈${rkm}<small> river-km</small></div><div class="sub">rkm ${fmt(first.rkm)} → ${fmt(last.rkm)}</div></div>
-  <div class="tile"><div class="label">Mean crest speed</div><div class="value">≈${fmt(rkm / lagDays / 24)}<small> km/h</small></div><div class="sub">${Math.round(rkm / lagDays)} km/day</div></div>
-  <div class="tile"><div class="label">Highest crest</div><div class="value">${fmt(Math.max(...GAUGES.map(g => g.peak[1])))}<small> cm</small></div><div class="sub">at ${GAUGES.reduce((a, b) => (b.peak[1] > a.peak[1] ? b : a)).name}</div></div>`;
+  <div class="tile"><div class="label">Levonulási idő</div><div class="value">${lagDays}<small> nap</small></div><div class="sub">${first.name} → ${last.name}</div></div>
+  <div class="tile"><div class="label">Megtett távolság</div><div class="value">≈${rkm}<small> fkm</small></div><div class="sub">fkm ${fmt(first.rkm)} → ${fmt(last.rkm)}</div></div>
+  <div class="tile"><div class="label">Átlagos haladási sebesség</div><div class="value">≈${fmt(rkm / lagDays / 24)}<small> km/h</small></div><div class="sub">${Math.round(rkm / lagDays)} km/nap</div></div>
+  <div class="tile"><div class="label">Legmagasabb tetőzés</div><div class="value">${fmt(Math.max(...GAUGES.map(g => g.peak[1])))}<small> cm</small></div><div class="sub">${GAUGES.reduce((a, b) => (b.peak[1] > a.peak[1] ? b : a)).name}</div></div>`;
 
 // ---- small multiples ----
 const W = 960, PH = 118, GAP = 6, M = { t: 8, r: 16, b: 26, l: 46 };
@@ -210,7 +209,7 @@ svg.addEventListener("keydown", ev => {
 // ---- table ----
 const thead = document.querySelector("#datatable thead");
 const hr = document.createElement("tr");
-for (const h of ["Date", ...GAUGES.map(g => g.name + " (cm)")]) {
+for (const h of ["Dátum", ...GAUGES.map(g => g.name + " (cm)")]) {
   const th = document.createElement("th"); th.textContent = h; hr.appendChild(th);
 }
 thead.appendChild(hr);

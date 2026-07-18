@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="hu">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ovf-data-mcp — example dashboards</title>
+<title>ovf-data-mcp — példa-adatvizualizációk</title>
 <style>
   * { margin: 0; box-sizing: border-box; }
   body {
@@ -39,12 +39,12 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>ovf-data-mcp — example dashboards</h1>
-  <p class="lede">Self-contained pages built by an AI agent from public Hungarian water-management
-     data (Országos Vízügyi Főigazgatóság), retrieved through the
-     <a href="https://github.com/kalcifield/ovf-data-mcp">ovf-data-mcp</a> CLI and MCP server.
-     Every number is traceable to the <code>vizugy</code> commands listed in each page's footer —
-     no scraping, no chart libraries, no build step.</p>
+  <h1>ovf-data-mcp — példa-adatvizualizációk</h1>
+  <p class="lede">Önálló oldalak, amelyeket egy MI-ügynök készített nyilvános magyar vízügyi
+     adatokból (Országos Vízügyi Főigazgatóság), az
+     <a href="https://github.com/kalcifield/ovf-data-mcp">ovf-data-mcp</a> parancssori eszközén
+     és MCP-szerverén keresztül. Minden szám visszavezethető az oldalak láblécében felsorolt
+     <code>vizugy</code> parancsokra — webes adatkinyerés, diagramkönyvtár és buildelés nélkül.</p>
   <div class="links">
     <a href="https://github.com/kalcifield/ovf-data-mcp">GitHub</a>
     <a href="https://pypi.org/project/ovf-data-mcp/">PyPI</a>
@@ -52,59 +52,61 @@
 
   <div class="grid">
     <a class="card" href="examples/lake-velence-90-years.html">
-      <img src="examples/lake-velence-90-years.png" alt="Preview of the Lake Velence dashboard: 92-year yearly water-level chart with stat tiles">
+      <img src="examples/lake-velence-90-years.png" alt="A Velencei-tó adatvizualizációjának előnézete: 92 év éves vízállásai és összesítő mutatói">
       <div class="body">
-        <h2>Nine decades of Lake Velence</h2>
-        <p>92 years of the Agárd gauge — from the near-dry 1930s to July 2026, now below the
-           2022 crisis floor at a level last seen in 1938.</p>
+        <h2>A Velencei-tó kilenc évtizede</h2>
+        <p>Az agárdi vízmérce 92 éve — az 1930-as évek csaknem kiszáradt tavától 2026 júliusáig.
+           A vízállás már a 2022-es mélypont alatt jár, utoljára 1938-ban volt ilyen alacsony.</p>
       </div>
     </a>
     <a class="card" href="examples/danube-in-balatons.html">
-      <img src="examples/danube-in-balatons.png" alt="Preview of the discharge dashboard: daily flow and cumulative volume with Balaton milestones">
+      <img src="examples/danube-in-balatons.png" alt="A vízhozam-adatvizualizáció előnézete: napi vízhozam és összesített víztérfogat balatoni mérföldkövekkel">
       <div class="body">
-        <h2>A year of the Danube, measured in Balatons</h2>
-        <p>47 km³ passed Budapest this year — one Lake Balaton every ~15 days, integrated
-           from daily discharge.</p>
+        <h2>A Duna egy éve, Balatonban mérve</h2>
+        <p>Idén 47 km³ víz haladt át Budapestnél — mintegy 15 naponta egy Balatonnyi,
+           a napi vízhozamokból összegezve.</p>
       </div>
     </a>
     <a class="card" href="examples/homokhatsag-groundwater.html">
-      <img src="examples/homokhatsag-groundwater.png" alt="Preview of the groundwater dashboard: three well panels with sinking depth trends">
+      <img src="examples/homokhatsag-groundwater.png" alt="A talajvíz-adatvizualizáció előnézete: három kút süllyedő vízszinttrendje">
       <div class="body">
-        <h2>The sinking water table of the Homokhátság</h2>
-        <p>Three shallow wells on the Danube–Tisza ridge, up to 92 years each — the water
-           table has sunk 1–3 metres.</p>
+        <h2>A Homokhátság süllyedő talajvízszintje</h2>
+        <p>Három sekély kút a Duna–Tisza közi hátságon, kutanként akár 92 évnyi adattal —
+           a talajvízszint 1–3 métert süllyedt.</p>
       </div>
     </a>
     <a class="card" href="examples/danube-flood-wave.html">
-      <img src="examples/danube-flood-wave.png" alt="Preview of the flood-wave dashboard: five stacked gauge panels with peak annotations">
+      <img src="examples/danube-flood-wave.png" alt="Az árhullám-adatvizualizáció előnézete: öt vízmérce egymás alatti diagramja, megjelölt tetőzésekkel">
       <div class="body">
-        <h2>A flood wave travelling down the Danube</h2>
-        <p>Five gauges from Komárom to Mohács track the February 2026 crest across
-           ~320 river-km in three days.</p>
+        <h2>Egy árhullám útja a Dunán</h2>
+        <p>Öt vízmérce Komáromtól Mohácsig: a 2026. februári tetőzés három nap alatt
+           mintegy 320 folyamkilométert tett meg.</p>
       </div>
     </a>
     <a class="card" href="examples/rivers-drought-scoreboard.html">
-      <img src="examples/rivers-drought-scoreboard.png" alt="Preview of the drought scoreboard: six gauges ranked by position in their 12-month range">
+      <img src="examples/rivers-drought-scoreboard.png" alt="Az aszályhelyzet-összesítő előnézete: hat vízmérce rangsora a saját 12 havi tartományukban elfoglalt helyük alapján">
       <div class="body">
-        <h2>How low are Hungary’s rivers right now?</h2>
-        <p>Six gauges across the Duna, Tisza, Dráva and Balaton, each placed in its own
-           12-month range — all in the bottom tenth.</p>
+        <h2>Milyen alacsonyak most Magyarország vizei?</h2>
+        <p>Hat vízmérce a Dunán, a Tiszán, a Dráván és a Balatonon, mindegyik a saját
+           12 havi tartományában elhelyezve — valamennyi az alsó tizedben.</p>
       </div>
     </a>
     <a class="card" href="examples/danube-water-level.html">
-      <img src="examples/danube-water-level.png" alt="Preview of the Danube at Budapest dashboard: a year of daily water levels with flood-alert line">
+      <img src="examples/danube-water-level.png" alt="A Duna budapesti adatvizualizációjának előnézete: egy év napi vízállásai az árvízvédelmi készültségi szinttel">
       <div class="body">
-        <h2>Danube at Budapest — last 12 months</h2>
-        <p>Daily mean with min–max range and the flood-alert threshold at the Budapest gauge.</p>
+        <h2>A Duna Budapestnél — az elmúlt 12 hónap</h2>
+        <p>Napi átlagok minimum–maximum tartománnyal és a budapesti vízmérce árvízvédelmi
+           készültségi szintjével.</p>
       </div>
     </a>
   </div>
 
   <footer>
-    <p><strong>ovf-data-mcp is an independent, unofficial project</strong> — not affiliated with
-       or endorsed by the Országos Vízügyi Főigazgatóság (OVF).</p>
-    <p>Operational data — preliminary, unchecked; for checked data follow OVF’s formal
-       data-request process. Dashboards are static snapshots from the date shown in each footer.</p>
+    <p><strong>Az ovf-data-mcp független, nem hivatalos projekt</strong> — nem áll kapcsolatban
+       az Országos Vízügyi Főigazgatósággal (OVF), és az OVF nem hagyta jóvá.</p>
+    <p>Az operatív adatok előzetesek, nem ellenőrzöttek. Ellenőrzött adatokért kövesse az OVF
+       hivatalos adatigénylési folyamatát. Az adatvizualizációk statikus pillanatképek, amelyek
+       időpontja az egyes oldalak láblécében található.</p>
   </footer>
 </div>
 </body>

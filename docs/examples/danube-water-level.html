@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="hu">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Danube at Budapest — 12-month water level | ovf-data-mcp example</title>
+<title>A Duna Budapestnél — 12 havi vízállás | ovf-data-mcp példa</title>
 <style>
   * { margin: 0; box-sizing: border-box; }
   .viz-root {
@@ -68,45 +68,44 @@
 <div class="viz-root">
 <div class="wrap">
   <header>
-    <h1>Danube at Budapest — water level, last 12 months</h1>
-    <p>Daily mean with the daily min–max range, gauge <strong>Budapest (1026)</strong> on the Duna,
-       from public OVF hydrological data retrieved by an AI agent through
-       <a href="https://github.com/kalcifield/ovf-data-mcp">ovf-data-mcp</a>. Operational data — preliminary, unchecked.</p>
+    <h1>A Duna Budapestnél — az elmúlt 12 hónap vízállása</h1>
+    <p>Napi középvízállás a napi minimum–maximum tartománnyal, <strong>Budapest (1026)</strong>
+       vízmérce. Nyilvános OVF-adatok, amelyeket egy MI-ügynök ért el az
+       <a href="https://github.com/kalcifield/ovf-data-mcp">ovf-data-mcp</a> segítségével. Az operatív adatok előzetesek, nem ellenőrzöttek.</p>
   </header>
 
   <div class="tiles" id="tiles"></div>
 
   <div class="card">
-    <h2>Daily water level at Budapest (cm)</h2>
-    <p class="sub">Line: daily mean · band: daily min–max range · 18 Jul 2025 – 17 Jul 2026 · hover or focus + arrow keys for values</p>
+    <h2>Napi vízállás Budapestnél (cm)</h2>
+    <p class="sub">Vonal: napi középérték · sáv: napi minimum–maximum · 2025. július 18. – 2026. július 17. · egér vagy billentyűzet az értékekhez</p>
     <svg id="chart" viewBox="0 0 960 400" role="img" tabindex="0"
-         aria-label="Line chart of daily Danube water level at Budapest over the last 12 months. Peak 482 centimetres in late February, currently near the annual low at 52 centimetres. Flood alert level one at 620 centimetres was never reached. Full values in the data table below."></svg>
+         aria-label="Vonaldiagram a Duna Budapestnél mért napi vízállásáról az elmúlt 12 hónapban. A február végi maximum 482 centiméter, a jelenlegi érték az éves minimum közelében, 52 centiméter. A 620 centiméteres elsőfokú készültségi szintet nem érte el. A teljes adatsor az alábbi táblázatban található."></svg>
     <div class="tooltip" id="tooltip"></div>
   </div>
 
   <details>
-    <summary>Data table — 366 daily rows</summary>
+    <summary>Adattábla — 366 napi adatsor</summary>
     <div class="tablebox"><table id="datatable">
-      <thead><tr><th>Date</th><th>Mean (cm)</th><th>Min (cm)</th><th>Max (cm)</th></tr></thead>
+      <thead><tr><th>Dátum</th><th>Közép (cm)</th><th>Minimum (cm)</th><th>Maximum (cm)</th></tr></thead>
       <tbody></tbody>
     </table></div>
   </details>
 
   <footer>
-    <h3>How this page was made</h3>
-    <p>An agent asked <code>ovf-data-mcp</code> for the station, checked coverage, then ran three
-       server-side aggregations — no scraping, no manual downloads:</p>
+    <h3>Hogyan készült ez az oldal?</h3>
+    <p>Az ügynök az <code>ovf-data-mcp</code> segítségével azonosította az állomást, ellenőrizte
+       az időbeli lefedettséget, majd három szerveroldali összesítést futtatott:</p>
     <pre>vizugy stations search Budapest --watercourse Duna
 vizugy observations aggregate surface:1026 --start 2025-07-18T00:00:00Z \
     --end 2026-07-18T00:00:00Z --interval daily --operation avg   # + min, max</pre>
-    <p>These commands are the only data source. The agent then merged the JSON responses and
-       wrote this page’s HTML, CSS, and JavaScript itself — no chart libraries, no build step.</p>
-    <p>Source: Országos Vízügyi Főigazgatóság (OVF) via the public
+    <p>Az adatok kizárólag ezekből a parancsokból származnak. Az ügynök egyesítette a JSON-válaszokat,
+       majd maga írta meg az oldal HTML-, CSS- és JavaScript-kódját — diagramkönyvtár és buildelés nélkül.</p>
+    <p>Forrás: Országos Vízügyi Főigazgatóság (OVF), a nyilvános
        <a href="https://vmservice.vizugy.hu/vraquery/swagger/index.html">VRAQuery API</a> ·
-       station Budapest (1026), Duna, metric “Felszíni vízállás” (surface water level, cm),
-       data type “operatív összefésült” · retrieved 2026-07-18 10:28 (UTC).
-       Aggregation buckets follow upstream hydrological-day boundaries.
-       Operational values may be preliminary; for checked data follow OVF’s formal data-request process.</p>
+       Budapest állomás (1026), Duna, „Felszíni vízállás” mutató (cm), „operatív összefésült”
+       adattípus · lekérdezve: 2026-07-18 10:28 (UTC). Az összesítési időszakok az adatforrás
+       hidrológiai napjait követik. Ellenőrzött adatokért kövesse az OVF hivatalos adatigénylési folyamatát.</p>
   </footer>
 </div>
 </div>
@@ -117,18 +116,18 @@ const DATA = [["2025-07-17",159.4,153.0,175.0],["2025-07-18",209.9,178.0,235.0],
 const ALERT1 = 620; // OVF alert level I for this gauge (II: 700, III: 800 — off-scale here)
 
 const css = n => getComputedStyle(document.querySelector(".viz-root")).getPropertyValue(n).trim();
-const fmt = v => v.toLocaleString("en-US", { maximumFractionDigits: 1 });
-const fmtDate = d => new Date(d + "T12:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+const fmt = v => v.toLocaleString("hu-HU", { maximumFractionDigits: 1 });
+const fmtDate = d => new Date(d + "T12:00:00Z").toLocaleDateString("hu-HU", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
 
 // ---- stats + tiles ----
 const latest = DATA[DATA.length - 1];
 let peak = DATA[0], low = DATA[0];
 for (const r of DATA) { if (r[3] > peak[3]) peak = r; if (r[2] < low[2]) low = r; }
 document.getElementById("tiles").innerHTML = `
-  <div class="tile"><div class="label">Latest daily mean</div><div class="value">${fmt(latest[1])}<small> cm</small></div><div class="sub">${fmtDate(latest[0])}</div></div>
-  <div class="tile"><div class="label">12-month peak</div><div class="value">${fmt(peak[3])}<small> cm</small></div><div class="sub">${fmtDate(peak[0])}</div></div>
-  <div class="tile"><div class="label">12-month low</div><div class="value">${fmt(low[2])}<small> cm</small></div><div class="sub">${fmtDate(low[0])}</div></div>
-  <div class="tile"><div class="label">Days at alert level I (≥620 cm)</div><div class="value">0</div><div class="sub">never reached this year</div></div>`;
+  <div class="tile"><div class="label">Legutóbbi napi középérték</div><div class="value">${fmt(latest[1])}<small> cm</small></div><div class="sub">${fmtDate(latest[0])}</div></div>
+  <div class="tile"><div class="label">12 havi maximum</div><div class="value">${fmt(peak[3])}<small> cm</small></div><div class="sub">${fmtDate(peak[0])}</div></div>
+  <div class="tile"><div class="label">12 havi minimum</div><div class="value">${fmt(low[2])}<small> cm</small></div><div class="sub">${fmtDate(low[0])}</div></div>
+  <div class="tile"><div class="label">I. fokú készültségben töltött napok (≥620 cm)</div><div class="value">0</div><div class="sub">idén egyszer sem érte el</div></div>`;
 
 // ---- chart ----
 const W = 960, H = 400, M = { t: 20, r: 16, b: 34, l: 46 };
@@ -155,13 +154,13 @@ for (let v = 0; v <= 600; v += 100) {
 // x ticks: first of each month
 const months = DATA.map(r => r[0]).filter(d => d.endsWith("-01"));
 for (const d of months) {
-  const label = new Date(d + "T12:00:00Z").toLocaleDateString("en-GB", { month: "short", timeZone: "UTC" });
+  const label = new Date(d + "T12:00:00Z").toLocaleDateString("hu-HU", { month: "short", timeZone: "UTC" });
   txt(label + (d.endsWith("-01-01") ? " ’26" : ""), { x: x(d), y: H - M.b + 20, "text-anchor": "middle", "font-size": 12, fill: css("--text-muted") });
 }
 
 // alert level I reference line
 el("line", { x1: M.l, x2: W - M.r, y1: y(ALERT1), y2: y(ALERT1), stroke: css("--status-warning"), "stroke-width": 1.5 });
-txt("⚠ Alert level I — 620 cm", { x: W - M.r, y: y(ALERT1) - 7, "text-anchor": "end", "font-size": 12, "font-weight": 600, fill: css("--text-secondary") });
+txt("⚠ I. fokú készültség — 620 cm", { x: W - M.r, y: y(ALERT1) - 7, "text-anchor": "end", "font-size": 12, "font-weight": 600, fill: css("--text-secondary") });
 
 // min–max band (series hue wash)
 const bandPath = DATA.map((r, i) => `${i ? "L" : "M"}${x(r[0]).toFixed(1)},${y(r[3]).toFixed(1)}`).join("")
@@ -175,7 +174,7 @@ el("path", { d: linePath, fill: "none", stroke: css("--series-1"), "stroke-width
 // direct labels: peak + latest (surface-ringed markers)
 const mark = (r, v) => el("circle", { cx: x(r[0]), cy: y(v), r: 4.5, fill: css("--series-1"), stroke: css("--surface-1"), "stroke-width": 2 });
 mark(peak, peak[3]);
-txt(`Peak ${fmt(peak[3])} cm`, { x: x(peak[0]) + 8, y: y(peak[3]) - 8, "font-size": 12.5, "font-weight": 600, fill: css("--text-primary") });
+txt(`Maximum ${fmt(peak[3])} cm`, { x: x(peak[0]) + 8, y: y(peak[3]) - 8, "font-size": 12.5, "font-weight": 600, fill: css("--text-primary") });
 mark(latest, latest[1]);
 txt(`${fmt(latest[1])} cm`, { x: x(latest[0]) - 8, y: y(latest[1]) - 10, "text-anchor": "end", "font-size": 12.5, "font-weight": 600, fill: css("--text-primary") });
 
@@ -192,7 +191,7 @@ function show(i) {
   dot.setAttribute("cx", px); dot.setAttribute("cy", y(r[1])); dot.setAttribute("visibility", "visible");
   tip.replaceChildren();
   const dEl = document.createElement("div"); dEl.className = "date"; dEl.textContent = fmtDate(r[0]); tip.appendChild(dEl);
-  for (const [name, val, band] of [["mean", r[1], 0], ["max", r[3], 1], ["min", r[2], 1]]) {
+  for (const [name, val, band] of [["közép", r[1], 0], ["maximum", r[3], 1], ["minimum", r[2], 1]]) {
     const row = document.createElement("div"); row.className = "row";
     const key = document.createElement("span"); key.className = "key" + (band ? " band" : "");
     const v = document.createElement("span"); v.className = "val"; v.textContent = fmt(val) + " cm";

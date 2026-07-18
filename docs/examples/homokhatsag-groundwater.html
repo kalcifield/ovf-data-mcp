@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="hu">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The sinking water table of the Homokhátság | ovf-data-mcp example</title>
+<title>A Homokhátság süllyedő talajvízszintje | ovf-data-mcp példa</title>
 <style>
   * { margin: 0; box-sizing: border-box; }
   .viz-root {
@@ -59,49 +59,48 @@
 <div class="viz-root">
 <div class="wrap">
   <header>
-    <h1>The sinking water table of the Homokhátság</h1>
-    <p>Shallow groundwater depth at three monitoring wells on the Danube–Tisza sand ridge —
-       Hungary’s slowly drying interior. Yearly mean depth to groundwater has grown by roughly
-       <strong>2.5–4 metres</strong> since the mid-20th century, and all three wells are near
-       their deepest readings on record. Public OVF well data retrieved by an AI agent through
-       <a href="https://github.com/kalcifield/ovf-data-mcp">ovf-data-mcp</a>. Operational data — preliminary, unchecked.</p>
+    <h1>A Homokhátság süllyedő talajvízszintje</h1>
+    <p>A talajvíz mélysége három észlelőkútban a Duna–Tisza közi homokhátságon — Magyarország
+       lassan kiszáradó belső vidékén. Az éves átlagos talajvízmélység a 20. század közepe óta
+       mintegy <strong>2,5–4 méterrel</strong> nőtt, és mindhárom kút a valaha mért legmélyebb
+       értékei közelében jár. Nyilvános OVF-kútadatok az
+       <a href="https://github.com/kalcifield/ovf-data-mcp">ovf-data-mcp</a> segítségével. Az operatív adatok előzetesek, nem ellenőrzöttek.</p>
   </header>
 
   <div class="tiles" id="tiles"></div>
 
   <div class="card">
-    <h2>Yearly mean depth to groundwater (cm below well datum)</h2>
-    <p class="sub">One panel per well · deeper is lower · y-scales aligned per panel · hover or focus + arrow keys for values</p>
+    <h2>Éves átlagos talajvízmélység (cm-rel a kút nullpontja alatt)</h2>
+    <p class="sub">Kutanként egy panel · a mélyebb érték lejjebb látható · panelenként illesztett y-skála · egér vagy billentyűzet az értékekhez</p>
     <svg id="chart" tabindex="0" role="img"
-         aria-label="Three stacked line charts of yearly mean groundwater depth at wells in Orgovány and Jakabszállás on the Danube–Tisza ridge, from as early as 1934 to 2025. All three lines trend downward — the water table sinking — from roughly 1.4 to 2.6 metres depth in the mid-20th century to roughly 3 to 5.6 metres today. Full values in the data table below."></svg>
+         aria-label="Három egymás alatti vonaldiagram orgoványi és jakabszállási kutak éves átlagos talajvízmélységéről, akár 1934-től 2025-ig. Mindhárom adatsor süllyedő talajvízszintet mutat. A teljes adatsor az alábbi táblázatban található."></svg>
     <div class="tooltip" id="tooltip"></div>
   </div>
 
   <details>
-    <summary>Data table — yearly mean depth, all three wells</summary>
+    <summary>Adattábla — éves átlagos mélység, mindhárom kút</summary>
     <div class="tablebox"><table id="datatable"><thead></thead><tbody></tbody></table></div>
   </details>
 
   <footer>
-    <h3>How this page was made</h3>
-    <p>This page needed a tool extension: the shallow-groundwater well network (2,004 stations)
-       wasn’t exposed by the CLI, so the agent added a <code>--network wells</code> option, then
-       queried three long-record wells the same way as any river gauge:</p>
+    <h3>Hogyan készült ez az oldal?</h3>
+    <p>Ehhez az oldalhoz bővíteni kellett az eszközt: a sekély talajvízkutak hálózatát (2 004 állomás)
+       a parancssori felület nem tette elérhetővé, ezért az ügynök hozzáadta a <code>--network wells</code>
+       kapcsolót, majd három hosszú adatsorú kutat kérdezett le:</p>
     <pre>vizugy stations search "" --network wells --municipality Orgovány
 vizugy observations coverage well:1414        # available from 1934-01-02
 vizugy observations aggregate well:1414 --start 1934-01-01T00:00:00Z \
     --end 1960-01-01T00:00:00Z --interval yearly --operation avg   # × 4 windows × 3 wells</pre>
-    <p>These commands are the only data source. The agent then merged the JSON responses and
-       wrote this page’s HTML, CSS, and JavaScript itself — no chart libraries, no build step.</p>
-    <p>Source: Országos Vízügyi Főigazgatóság (OVF) via the public
+    <p>Az adatok kizárólag ezekből a parancsokból származnak. Az ügynök egyesítette a JSON-válaszokat,
+       majd maga írta meg az oldal HTML-, CSS- és JavaScript-kódját — diagramkönyvtár és buildelés nélkül.</p>
+    <p>Forrás: Országos Vízügyi Főigazgatóság (OVF), a nyilvános
        <a href="https://vmservice.vizugy.hu/vraquery/swagger/index.html">VRAQuery API</a> ·
-       metric “Talajvízállás” (shallow groundwater level, cm), data type “operatív összefésült” ·
-       retrieved 2026-07-18 11:29 (UTC). Values are read relative to each well’s own datum and are
-       interpreted here as depth (a growing value = a sinking water table), consistent with the
-       documented multi-decade groundwater decline of the ridge; absolute depths below terrain
-       may differ per well — confirm datum details with OVF before quantitative reuse. Wells are
-       not comparable to each other in absolute terms. 2026 is partial and omitted.
-       Operational values may be preliminary; for checked data follow OVF’s formal data-request process.</p>
+       „Talajvízállás” mutató (cm), „operatív összefésült” adattípus · lekérdezve: 2026-07-18 11:29 (UTC).
+       Az értékek minden kútnál a saját nullponthoz viszonyítottak, és itt mélységként értelmezzük
+       őket (növekvő érték = süllyedő talajvízszint). A terepszint alatti abszolút mélység kutanként
+       eltérhet; mennyiségi újrafelhasználás előtt egyeztesse a nullpontot az OVF-fel. A kutak abszolút
+       értékei egymással nem összehasonlíthatók. A részleges 2026-os év kimaradt. Ellenőrzött
+       adatokért kövesse az OVF hivatalos adatigénylési folyamatát.</p>
   </footer>
 </div>
 </div>
@@ -110,7 +109,7 @@ vizugy observations aggregate well:1414 --start 1934-01-01T00:00:00Z \
 const WELLS = [{"id":"1414","name":"Orgovány","rows":[[1934,140.9],[1935,148.2],[1936,142.7],[1937,126.9],[1938,136.8],[1939,124.2],[1940,100.1],[1941,134.7],[1942,142.3],[1943,187.5],[1944,132.8],[1945,184.3],[1946,190.1],[1947,158.9],[1948,197.9],[1949,193.4],[1950,179.6],[1951,140.9],[1952,149.0],[1953,126.0],[1954,157.3],[1955,146.1],[1956,129.4],[1957,152.6],[1958,161.9],[1959,146.3],[1960,157.7],[1961,191.3],[1962,217.4],[1963,204.0],[1964,189.8],[1965,156.7],[1966,156.6],[1967,178.0],[1968,218.8],[1969,192.9],[1970,153.3],[1971,186.9],[1972,197.1],[1973,215.6],[1974,200.8],[1975,178.8],[1976,202.5],[1977,199.0],[1978,207.5],[1979,212.8],[1980,216.7],[1981,219.8],[1982,225.2],[1983,251.3],[1984,276.6],[1985,314.5],[1986,279.9],[1987,262.8],[1988,272.8],[1989,310.3],[1990,336.9],[1991,338.3],[1992,365.2],[1993,386.5],[1994,356.5],[1995,412.3],[1996,318.3],[1997,312.0],[1998,322.8],[1999,269.8],[2000,236.0],[2001,287.5],[2002,303.2],[2003,304.4],[2004,309.2],[2005,313.7],[2006,305.5],[2007,327.0],[2008,357.6],[2009,388.4],[2010,338.0],[2011,282.1],[2012,340.9],[2013,329.4],[2014,357.2],[2015,309.4],[2016,316.1],[2017,343.8],[2018,324.0],[2019,366.7],[2020,404.2],[2021,422.6],[2022,464.1],[2023,503.4],[2024,523.9],[2025,558.5]]},{"id":"1385","name":"Orgovány","rows":[[1960,259.1],[1961,243.4],[1962,274.4],[1963,275.8],[1964,274.2],[1965,232.3],[1966,205.9],[1967,230.3],[1968,287.5],[1969,273.7],[1970,220.5],[1971,251.2],[1972,284.2],[1973,291.7],[1974,293.0],[1975,264.3],[1976,280.6],[1977,264.0],[1978,287.7],[1979,284.2],[1980,287.9],[1981,279.0],[1982,294.9],[1983,329.2],[1984,361.8],[1985,353.1],[1986,340.4],[1987,319.2],[1988,317.2],[1989,345.1],[1990,366.6],[1991,344.7],[1992,351.2],[1993,369.2],[1994,355.5],[1995,353.5],[1996,288.8],[1997,302.8],[1998,299.6],[1999,257.5],[2000,236.5],[2001,292.2],[2002,318.3],[2003,349.2],[2004,334.7],[2005,301.5],[2006,282.4],[2007,338.2],[2008,354.8],[2009,378.8],[2010,288.8],[2011,257.2],[2012,345.5],[2013,330.2],[2014,332.7],[2015,290.7],[2016,298.3],[2017,313.8],[2018,303.9],[2019,333.4],[2020,372.7],[2021,407.9],[2022,454.6],[2023,460.6],[2024,475.4],[2025,506.1]]},{"id":"1390","name":"Jakabszállás","rows":[[1960,196.6],[1961,200.1],[1962,231.1],[1963,208.3],[1964,193.3],[1965,165.9],[1966,162.4],[1967,185.2],[1968,237.8],[1969,205.9],[1970,166.9],[1971,196.9],[1972,220.2],[1973,224.2],[1974,215.1],[1975,177.1],[1976,204.0],[1977,214.2],[1978,229.8],[1979,234.0],[1980,242.9],[1981,234.4],[1982,234.3],[1983,280.9],[1984,307.5],[1985,296.1],[1986,274.8],[1987,261.5],[1988,255.6],[1989,283.9],[1990,307.6],[1991,280.8],[1992,281.3],[1993,288.5],[1994,294.6],[1995,314.0],[1996,231.6],[1997,249.5],[1998,256.6],[1999,207.2],[2000,204.6],[2001,267.2],[2002,300.7],[2003,319.0],[2004,301.7],[2005,268.1],[2006,244.6],[2007,324.4],[2008,337.9],[2009,345.1],[2010,244.8],[2011,199.6],[2012,279.1],[2013,259.8],[2014,254.0],[2015,241.1],[2016,230.6],[2017,255.9],[2018,234.7],[2019,291.8],[2020,294.7],[2021,326.3],[2022,362.8],[2023,373.7],[2024,378.4],[2025,386.4]]}]; // [{id, name, rows: [[year, cm depth]]}]
 
 const css = n => getComputedStyle(document.querySelector(".viz-root")).getPropertyValue(n).trim();
-const fmt = v => v.toLocaleString("en-US", { maximumFractionDigits: 1 });
+const fmt = v => v.toLocaleString("hu-HU", { maximumFractionDigits: 1 });
 const NS = "http://www.w3.org/2000/svg";
 
 for (const w of WELLS) {
@@ -122,10 +121,10 @@ for (const w of WELLS) {
 }
 const maxDrop = WELLS.reduce((a, b) => (b.drop > a.drop ? b : a));
 document.getElementById("tiles").innerHTML = `
-  <div class="tile"><div class="label">Wells shown</div><div class="value">3</div><div class="sub">of 2,004 in the shallow-well network</div></div>
-  <div class="tile"><div class="label">Longest record</div><div class="value">${WELLS[0].rows.length}<small> years</small></div><div class="sub">${WELLS[0].name}, since ${WELLS[0].rows[0][0]}</div></div>
-  <div class="tile"><div class="label">Largest sink</div><div class="value">−${fmt(maxDrop.drop / 100)}<small> m</small></div><div class="sub">${maxDrop.name}, first decade vs 2016–25</div></div>
-  <div class="tile"><div class="label">Deepest reading</div><div class="value">${fmt(Math.max(...WELLS.flatMap(w => w.rows.map(r => r[1]))) / 100)}<small> m</small></div><div class="sub">yearly mean, 2025</div></div>`;
+  <div class="tile"><div class="label">Bemutatott kutak</div><div class="value">3</div><div class="sub">a sekélykút-hálózat 2 004 kútjából</div></div>
+  <div class="tile"><div class="label">Leghosszabb adatsor</div><div class="value">${WELLS[0].rows.length}<small> év</small></div><div class="sub">${WELLS[0].name}, ${WELLS[0].rows[0][0]} óta</div></div>
+  <div class="tile"><div class="label">Legnagyobb süllyedés</div><div class="value">−${fmt(maxDrop.drop / 100)}<small> m</small></div><div class="sub">${maxDrop.name}, első évtized és 2016–25 között</div></div>
+  <div class="tile"><div class="label">Legmélyebb érték</div><div class="value">${fmt(Math.max(...WELLS.flatMap(w => w.rows.map(r => r[1]))) / 100)}<small> m</small></div><div class="sub">éves átlag, 2025</div></div>`;
 
 // ---- small multiples, y inverted (depth grows downward) ----
 const W = 960, PH = 150, GAP = 8, M = { t: 8, r: 16, b: 26, l: 56 };
@@ -153,7 +152,7 @@ WELLS.forEach((w, wi) => {
   const y = v => top + 20 + (v - (vMin - pad)) / ((vMax + pad) - (vMin - pad)) * (bot - top - 20);
   w.y = y;
 
-  txt(`${w.name} · well:${w.id} · since ${w.rows[0][0]}`, { x: M.l, y: top + 12, "font-size": 12.5, "font-weight": 600, fill: css("--text-primary") });
+  txt(`${w.name} · well:${w.id} · ${w.rows[0][0]} óta`, { x: M.l, y: top + 12, "font-size": 12.5, "font-weight": 600, fill: css("--text-primary") });
   for (const v of [Math.ceil(vMin / 100) * 100, Math.floor(vMax / 100) * 100]) {
     el("line", { x1: M.l, x2: W - M.r, y1: y(v), y2: y(v), stroke: css("--grid"), "stroke-width": 1 });
     txt(`${fmt(v / 100)} m`, { x: M.l - 8, y: y(v) + 4, "text-anchor": "end", "font-size": 11, fill: css("--text-muted") });
@@ -163,7 +162,7 @@ WELLS.forEach((w, wi) => {
 
   const last = w.rows[w.rows.length - 1];
   el("circle", { cx: x(last[0]), cy: y(last[1]), r: 4.5, fill: css("--series-1"), stroke: css("--surface-1"), "stroke-width": 2 });
-  txt(`2025 · ${fmt(last[1] / 100)} m deep · ${fmt(w.drop / 100)} m below its first decade`, { x: x(last[0]) - 9, y: y(last[1]) + 16, "text-anchor": "end", "font-size": 12, "font-weight": 600, fill: css("--text-primary") });
+  txt(`2025 · ${fmt(last[1] / 100)} m mély · ${fmt(w.drop / 100)} m-rel az első évtized alatt`, { x: x(last[0]) - 9, y: y(last[1]) + 16, "text-anchor": "end", "font-size": 12, "font-weight": 600, fill: css("--text-primary") });
 });
 
 for (let yr = Math.ceil(y0 / 10) * 10; yr <= 2020; yr += 10) {
@@ -218,7 +217,7 @@ const years = [];
 for (let yr = y0; yr <= y1; yr++) years.push(yr);
 const thead = document.querySelector("#datatable thead");
 const hr = document.createElement("tr");
-for (const h of ["Year", ...WELLS.map(w => `${w.name} (m)`)]) {
+for (const h of ["Év", ...WELLS.map(w => `${w.name} (m)`)]) {
   const th = document.createElement("th"); th.textContent = h; hr.appendChild(th);
 }
 thead.appendChild(hr);
