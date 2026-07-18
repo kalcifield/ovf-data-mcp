@@ -51,43 +51,95 @@ guaranteed checked data, follow OVF's formal data-request process.
 
 ## Installation
 
-Run the MCP server directly from PyPI without cloning the repository:
+Install [`uv`](https://docs.astral.sh/uv/), then choose the CLI or an MCP client.
+
+### CLI
+
+Install both `vizugy` and `ovf-data-mcp` as isolated global tools:
 
 ```bash
-uvx ovf-data-mcp
+uv tool install ovf-data-mcp
+vizugy --help
 ```
 
-This command becomes available after the first PyPI release.
+Run the CLI without installing it:
 
-Add it to Claude Code for the current user:
+```bash
+uvx --from ovf-data-mcp vizugy --help
+```
+
+### MCP clients
+
+Claude Code:
 
 ```bash
 claude mcp add --scope user ovf-data -- uvx ovf-data-mcp
 ```
 
-For source development, use Python 3.11+ and [`uv`](https://docs.astral.sh/uv/):
+Codex CLI and IDE extension:
 
 ```bash
-git clone https://github.com/kalcifield/ovf-data-mcp.git
-cd ovf-data-mcp
-uv sync --extra test
+codex mcp add ovf-data -- uvx ovf-data-mcp
 ```
 
-Run commands from the checkout:
+One-click editor installation:
 
-```bash
-uv run vizugy --help
-uv run ovf-data-mcp
+| Client | Install |
+|---|---|
+| VS Code | [![Install on VS Code](https://img.shields.io/badge/Install_on-VS_Code-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect/mcp/install?name=ovf-data&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22ovf-data-mcp%22%5D%7D) |
+| Cursor | [![Install MCP Server](https://cursor.com/deeplink/mcp-install-light.svg)](https://cursor.com/en/install-mcp?name=ovf-data&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyJvdmYtZGF0YS1tY3AiXX0=) |
+
+Generic stdio configuration for Cursor and other MCP clients:
+
+```json
+{
+  "mcpServers": {
+    "ovf-data": {
+      "command": "uvx",
+      "args": ["ovf-data-mcp"]
+    }
+  }
+}
 ```
 
-After packaging or installation, use `vizugy` and `ovf-data-mcp` directly.
+<details>
+<summary>Manual VS Code configuration</summary>
+
+Add this to your user configuration or `.vscode/mcp.json`:
+
+```json
+{
+  "servers": {
+    "ovf-data": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["ovf-data-mcp"]
+    }
+  }
+}
+```
+
+</details>
+
+<details>
+<summary>Manual Codex configuration</summary>
+
+Add this to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.ovf-data]
+command = "uvx"
+args = ["ovf-data-mcp"]
+```
+
+</details>
 
 ## Quick investigation
 
 ### 1. Resolve a station
 
 ```bash
-uv run vizugy stations search Budapest --watercourse Duna --limit 10
+vizugy stations search Budapest --watercourse Duna --limit 10
 ```
 
 Results use stable namespaced IDs such as `surface:1026`.
@@ -95,15 +147,15 @@ Results use stable namespaced IDs such as `surface:1026`.
 Find stations by coordinates:
 
 ```bash
-uv run vizugy stations nearest 47.4979 19.0402 --limit 5
+vizugy stations nearest 47.4979 19.0402 --limit 5
 ```
 
 ### 2. Inspect available measurements and coverage
 
 ```bash
-uv run vizugy catalog measurements
+vizugy catalog measurements
 
-uv run vizugy observations coverage surface:1026 \
+vizugy observations coverage surface:1026 \
   --metric water-level \
   --data-type operational
 ```
@@ -128,7 +180,7 @@ Numeric VRA codes and exact catalogue names are also accepted.
 ### 3. Explain before fetching
 
 ```bash
-uv run vizugy observations get surface:1026 \
+vizugy observations get surface:1026 \
   --metric water-level \
   --data-type operational \
   --start 2026-07-16T00:00:00Z \
@@ -142,7 +194,7 @@ upstream operation, expected mode, and safety warnings. It performs no value que
 ### 4. Retrieve a bounded raw series
 
 ```bash
-uv run vizugy observations get surface:1026 \
+vizugy observations get surface:1026 \
   --metric water-level \
   --data-type operational \
   --start 2026-07-16T00:00:00Z \
@@ -157,7 +209,7 @@ JSONL emits one compact timestamp/value record per line followed by a `_meta` re
 ### 5. Aggregate longer periods upstream
 
 ```bash
-uv run vizugy observations aggregate surface:2046 \
+vizugy observations aggregate surface:2046 \
   --metric water-level \
   --data-type operational \
   --start 2026-06-01T00:00:00Z \
@@ -179,13 +231,13 @@ labels remain UTC timestamps and can precede the requested UTC boundary by an of
 Search the OVF ArcGIS catalogue without knowing folder or layer identifiers:
 
 ```bash
-uv run vizugy datasets list --query Vizmercek --limit 20 --format json
+vizugy datasets list --query Vizmercek --limit 20 --format json
 ```
 
 Inspect one service or layer:
 
 ```bash
-uv run vizugy datasets describe \
+vizugy datasets describe \
   VIR/Vizmercek_vizugyhu_orszagos_adatsoros \
   --layer 6
 ```
@@ -217,23 +269,11 @@ Machine-readable output goes to stdout; diagnostics go to stderr.
 
 ## MCP server
 
-Start the local stdio server:
+MCP clients launch the local stdio server automatically using the configurations above.
+To start it directly:
 
 ```bash
-uv run ovf-data-mcp
-```
-
-Example client configuration:
-
-```json
-{
-  "mcpServers": {
-    "vizugy": {
-      "command": "uvx",
-      "args": ["ovf-data-mcp"]
-    }
-  }
-}
+uvx ovf-data-mcp
 ```
 
 Available tools:
@@ -279,6 +319,8 @@ does not silently claim equivalence.
 ## Development
 
 ```bash
+git clone https://github.com/kalcifield/ovf-data-mcp.git
+cd ovf-data-mcp
 uv sync --extra test
 uv run ruff format --check src tests
 uv run ruff check src tests
@@ -291,7 +333,6 @@ in [`docs/design.md`](docs/design.md) and [`docs/phase-2-review.md`](docs/phase-
 
 ## Licence and data attribution
 
-The software licence has not yet been finalized in this repository. Public endpoint
-access alone does not establish unrestricted reuse rights for every upstream dataset.
-Preserve OVF provenance and verify the applicable terms before redistribution or
-production use.
+The software is available under the [MIT License](LICENSE). This does not establish
+unrestricted reuse rights for every upstream dataset. Preserve OVF provenance and
+verify the applicable data terms before redistribution or production use.
