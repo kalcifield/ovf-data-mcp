@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A year of the Danube, measured in Balatons | ovf-data-mcp example</title>
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  .viz-root {
+    color-scheme: light;
+    --page: #f9f9f7; --surface-1: #fcfcfb;
+    --text-primary: #0b0b0b; --text-secondary: #52514e; --text-muted: #898781;
+    --grid: #e1e0d9; --baseline: #c3c2b7; --border: rgba(11,11,11,0.10);
+    --series-1: #2a78d6;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page); color: var(--text-primary);
+    min-height: 100vh; padding: 32px 16px 48px;
+  }
+  .wrap { max-width: 1000px; margin: 0 auto; }
+  header h1 { font-size: 22px; font-weight: 650; }
+  header p { color: var(--text-secondary); font-size: 14px; margin-top: 6px; max-width: 75ch; }
+  header p a { color: inherit; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 24px 0 16px; }
+  .tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .tile .label { font-size: 13px; color: var(--text-secondary); }
+  .tile .value { font-size: 30px; font-weight: 600; margin-top: 4px; }
+  .tile .value small { font-size: 15px; font-weight: 500; color: var(--text-secondary); }
+  .tile .sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 18px 18px 10px; position: relative; margin-bottom: 16px; }
+  .card h2 { font-size: 15px; font-weight: 600; }
+  .card .sub { font-size: 13px; color: var(--text-secondary); margin: 4px 0 10px; }
+  svg { display: block; width: 100%; height: auto; outline: none; }
+  svg:focus-visible { outline: 2px solid var(--series-1); outline-offset: 2px; border-radius: 6px; }
+  .tooltip {
+    position: absolute; pointer-events: none; display: none;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.12); padding: 8px 12px; font-size: 13px; min-width: 160px; z-index: 2;
+  }
+  .tooltip .date { font-weight: 600; margin-bottom: 4px; }
+  .tooltip .row { display: flex; align-items: center; gap: 7px; margin-top: 2px; }
+  .tooltip .key { width: 14px; height: 0; border-top: 2px solid var(--series-1); flex: none; }
+  .tooltip .val { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tooltip .name { color: var(--text-secondary); }
+  details { margin-top: 16px; background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+  summary { cursor: pointer; font-size: 14px; font-weight: 600; color: var(--text-secondary); }
+  .tablebox { max-height: 340px; overflow: auto; margin-top: 10px; }
+  table { border-collapse: collapse; font-size: 13px; width: 100%; }
+  th, td { text-align: right; padding: 4px 12px; font-variant-numeric: tabular-nums; border-bottom: 1px solid var(--grid); }
+  th:first-child, td:first-child { text-align: left; }
+  thead th { position: sticky; top: 0; background: var(--surface-1); color: var(--text-secondary); font-weight: 600; }
+  footer { margin-top: 24px; font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+  footer h3 { font-size: 13px; color: var(--text-primary); margin-bottom: 4px; }
+  footer pre { background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; overflow-x: auto; font-size: 12.5px; margin: 8px 0; }
+  footer a { color: inherit; }
+  .chart-text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+</style>
+</head>
+<body>
+<div class="viz-root">
+<div class="wrap">
+  <header>
+    <h1>A year of the Danube, measured in Balatons</h1>
+    <p>Daily mean discharge of the Danube at Budapest, 18 Jul 2025 – 17 Jul 2026 — and what it adds up to.
+       Even in a drought year, 47 km³ of water flowed through the city: roughly one
+       Lake Balaton every 15 days. Public OVF data retrieved by an AI agent through
+       <a href="https://github.com/kalcifield/ovf-data-mcp">ovf-data-mcp</a>. Operational data — preliminary, unchecked.</p>
+  </header>
+
+  <div class="tiles" id="tiles"></div>
+
+  <div class="card">
+    <h2>Daily mean discharge (m³/s)</h2>
+    <p class="sub">Gauge Budapest (1026) · hover or focus + arrow keys for values</p>
+    <svg id="chart-q" viewBox="0 0 960 300" role="img" tabindex="0"
+         aria-label="Line chart of daily mean discharge of the Danube at Budapest over the last 12 months. The February 2026 flood peaks at about 4,100 cubic metres per second; by mid-July 2026 flow falls below 900, the driest day of the year. Full values in the data table below."></svg>
+    <div class="tooltip" id="tip-q"></div>
+  </div>
+
+  <div class="card">
+    <h2>Cumulative volume through the year (km³)</h2>
+    <p class="sub">Right-edge labels mark every fifth Lake Balaton (1 Balaton ≈ 1.9 km³) · hover or focus + arrow keys for values</p>
+    <svg id="chart-v" viewBox="0 0 960 320" role="img" tabindex="0"
+         aria-label="Area chart of cumulative water volume passing Budapest over the year, rising to 47 cubic kilometres — about 25 times the volume of Lake Balaton. Gridlines mark every fifth Balaton-volume. Full values in the data table below."></svg>
+    <div class="tooltip" id="tip-v"></div>
+  </div>
+
+  <details>
+    <summary>Data table — daily discharge and cumulative volume</summary>
+    <div class="tablebox"><table id="datatable">
+      <thead><tr><th>Date</th><th>Discharge (m³/s)</th><th>Cumulative (km³)</th><th>Balatons</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </details>
+
+  <footer>
+    <h3>How this page was made</h3>
+    <p>An agent ran one server-side aggregation for the discharge metric — the coverage
+       check shows this gauge's discharge record goes back to 1924:</p>
+    <pre>vizugy observations coverage surface:1026 --metric discharge   # available from 1924
+vizugy observations aggregate surface:1026 --metric discharge \
+    --start 2025-07-18T00:00:00Z --end 2026-07-18T00:00:00Z \
+    --interval daily --operation avg</pre>
+    <p>These commands are the only data source. The agent then integrated the daily means
+       (m³/s × 86,400 s) into volumes and wrote this page’s HTML, CSS, and JavaScript itself —
+       no chart libraries, no build step.</p>
+    <p>Source: Országos Vízügyi Főigazgatóság (OVF) via the public
+       <a href="https://vmservice.vizugy.hu/vraquery/swagger/index.html">VRAQuery API</a> ·
+       station Budapest (1026), Duna, metric “Felszíni vízhozam” (discharge, m³/s), data type
+       “operatív összefésült” · retrieved 2026-07-18 11:29 (UTC). Lake Balaton’s volume is taken
+       as ≈1.9 km³ (a commonly cited approximation; it varies with the lake’s level).
+       Cumulative volume integrates daily means, so sub-daily variation is smoothed.
+       Operational values may be preliminary; for checked data follow OVF’s formal data-request process.</p>
+  </footer>
+</div>
+</div>
+<script>
+"use strict";
+const DATA = [["2025-07-17",1502.8],["2025-07-18",1849.1],["2025-07-19",1993.7],["2025-07-20",1779.6],["2025-07-21",1638.9],["2025-07-22",1598.9],["2025-07-23",1675.3],["2025-07-24",1718.3],["2025-07-25",1749.4],["2025-07-26",1881.0],["2025-07-27",2188.6],["2025-07-28",3064.2],["2025-07-29",3408.4],["2025-07-30",3948.0],["2025-07-31",3725.9],["2025-08-01",3224.8],["2025-08-02",2842.2],["2025-08-03",2638.9],["2025-08-04",2801.8],["2025-08-05",2777.3],["2025-08-06",2620.9],["2025-08-07",2427.0],["2025-08-08",2254.9],["2025-08-09",2092.6],["2025-08-10",1925.1],["2025-08-11",1743.9],["2025-08-12",1635.8],["2025-08-13",1578.8],["2025-08-14",1526.9],["2025-08-15",1466.1],["2025-08-16",1437.9],["2025-08-17",1387.5],["2025-08-18",1356.3],["2025-08-19",1348.0],["2025-08-20",1343.1],["2025-08-21",1332.7],["2025-08-22",1467.9],["2025-08-23",1959.8],["2025-08-24",1962.5],["2025-08-25",1726.2],["2025-08-26",1572.5],["2025-08-27",1474.8],["2025-08-28",1402.5],["2025-08-29",1366.7],["2025-08-30",1397.5],["2025-08-31",1520.5],["2025-09-01",1480.0],["2025-09-02",1392.5],["2025-09-03",1341.1],["2025-09-04",1335.7],["2025-09-05",1315.0],["2025-09-06",1286.9],["2025-09-07",1352.7],["2025-09-08",1393.2],["2025-09-09",1331.0],["2025-09-10",1295.8],["2025-09-11",1372.7],["2025-09-12",1490.7],["2025-09-13",1487.5],["2025-09-14",1437.5],["2025-09-15",1405.8],["2025-09-16",1459.2],["2025-09-17",1570.6],["2025-09-18",1617.6],["2025-09-19",1488.2],["2025-09-20",1377.2],["2025-09-21",1285.0],["2025-09-22",1205.1],["2025-09-23",1171.0],["2025-09-24",1184.7],["2025-09-25",1233.3],["2025-09-26",1309.1],["2025-09-27",1358.7],["2025-09-28",1385.2],["2025-09-29",1365.4],["2025-09-30",1316.5],["2025-10-01",1264.1],["2025-10-02",1237.7],["2025-10-03",1255.8],["2025-10-04",1238.8],["2025-10-05",1201.1],["2025-10-06",1155.8],["2025-10-07",1253.2],["2025-10-08",1652.8],["2025-10-09",1856.7],["2025-10-10",1770.7],["2025-10-11",1685.8],["2025-10-12",1576.2],["2025-10-13",1433.5],["2025-10-14",1328.0],["2025-10-15",1289.6],["2025-10-16",1281.5],["2025-10-17",1272.4],["2025-10-18",1231.7],["2025-10-19",1151.6],["2025-10-20",1102.8],["2025-10-21",1099.0],["2025-10-22",1100.0],["2025-10-23",1141.5],["2025-10-24",1197.1],["2025-10-25",1342.4],["2025-10-26",1398.1],["2025-10-27",1403.6],["2025-10-28",1429.3],["2025-10-29",1532.2],["2025-10-30",1599.7],["2025-10-31",1614.9],["2025-11-01",1571.0],["2025-11-02",1464.7],["2025-11-03",1422.7],["2025-11-04",1722.4],["2025-11-05",1899.0],["2025-11-06",1875.6],["2025-11-07",1713.6],["2025-11-08",1528.3],["2025-11-09",1400.4],["2025-11-10",1362.9],["2025-11-11",1380.8],["2025-11-12",1370.4],["2025-11-13",1354.0],["2025-11-14",1331.5],["2025-11-15",1304.1],["2025-11-16",1247.8],["2025-11-17",1232.8],["2025-11-18",1300.9],["2025-11-19",1450.3],["2025-11-20",1520.4],["2025-11-21",1462.0],["2025-11-22",1386.3],["2025-11-23",1302.4],["2025-11-24",1222.9],["2025-11-25",1263.9],["2025-11-26",1559.3],["2025-11-27",1959.7],["2025-11-28",1987.3],["2025-11-29",1790.7],["2025-11-30",1622.9],["2025-12-01",1511.6],["2025-12-02",1478.5],["2025-12-03",1516.0],["2025-12-04",1550.5],["2025-12-05",1560.7],["2025-12-06",1503.2],["2025-12-07",1446.9],["2025-12-08",1381.0],["2025-12-09",1517.4],["2025-12-10",1815.6],["2025-12-11",1854.4],["2025-12-12",1755.1],["2025-12-13",1623.6],["2025-12-14",1512.0],["2025-12-15",1410.4],["2025-12-16",1350.9],["2025-12-17",1318.3],["2025-12-18",1348.1],["2025-12-19",1339.4],["2025-12-20",1300.8],["2025-12-21",1228.5],["2025-12-22",1144.9],["2025-12-23",1140.9],["2025-12-24",1163.8],["2025-12-25",1152.4],["2025-12-26",1110.8],["2025-12-27",1067.0],["2025-12-28",1037.0],["2025-12-29",1015.9],["2025-12-30",1015.5],["2025-12-31",1047.1],["2026-01-01",1038.5],["2026-01-02",1002.2],["2026-01-03",982.4],["2026-01-04",977.0],["2026-01-05",961.7],["2026-01-06",966.9],["2026-01-07",1043.4],["2026-01-08",1105.8],["2026-01-09",1126.7],["2026-01-10",1057.5],["2026-01-11",1042.5],["2026-01-12",1014.5],["2026-01-13",971.5],["2026-01-14",1099.6],["2026-01-15",1198.1],["2026-01-16",1250.0],["2026-01-17",1216.7],["2026-01-18",1139.2],["2026-01-19",1063.5],["2026-01-20",1068.9],["2026-01-21",1060.8],["2026-01-22",1033.1],["2026-01-23",1040.2],["2026-01-24",1067.2],["2026-01-25",1056.5],["2026-01-26",1022.4],["2026-01-27",1040.8],["2026-01-28",1099.9],["2026-01-29",1191.2],["2026-01-30",1245.4],["2026-01-31",1210.9],["2026-02-01",1143.3],["2026-02-02",1070.9],["2026-02-03",1086.5],["2026-02-04",1093.0],["2026-02-05",1096.2],["2026-02-06",1135.7],["2026-02-07",1169.5],["2026-02-08",1173.4],["2026-02-09",1236.9],["2026-02-10",1307.3],["2026-02-11",1380.2],["2026-02-12",1395.0],["2026-02-13",1469.2],["2026-02-14",1704.2],["2026-02-15",1928.2],["2026-02-16",1927.6],["2026-02-17",1901.6],["2026-02-18",1988.7],["2026-02-19",2086.3],["2026-02-20",2014.0],["2026-02-21",1871.9],["2026-02-22",1901.6],["2026-02-23",2501.2],["2026-02-24",3298.5],["2026-02-25",3942.3],["2026-02-26",4090.5],["2026-02-27",3911.5],["2026-02-28",3536.4],["2026-03-01",3119.4],["2026-03-02",2741.1],["2026-03-03",2513.1],["2026-03-04",2339.2],["2026-03-05",2181.1],["2026-03-06",2082.5],["2026-03-07",1954.3],["2026-03-08",1807.2],["2026-03-09",1718.6],["2026-03-10",1668.0],["2026-03-11",1654.5],["2026-03-12",1608.2],["2026-03-13",1547.2],["2026-03-14",1519.8],["2026-03-15",1500.5],["2026-03-16",1457.6],["2026-03-17",1439.1],["2026-03-18",1418.5],["2026-03-19",1402.6],["2026-03-20",1375.4],["2026-03-21",1348.8],["2026-03-22",1312.0],["2026-03-23",1272.9],["2026-03-24",1260.8],["2026-03-25",1263.5],["2026-03-26",1267.5],["2026-03-27",1308.5],["2026-03-28",1325.9],["2026-03-29",1282.9],["2026-03-30",1226.5],["2026-03-31",1217.1],["2026-04-01",1238.1],["2026-04-02",1301.0],["2026-04-03",1304.8],["2026-04-04",1268.3],["2026-04-05",1277.7],["2026-04-06",1335.2],["2026-04-07",1496.0],["2026-04-08",1623.5],["2026-04-09",1603.6],["2026-04-10",1575.3],["2026-04-11",1528.0],["2026-04-12",1535.0],["2026-04-13",1522.7],["2026-04-14",1554.8],["2026-04-15",1633.5],["2026-04-16",1601.3],["2026-04-17",1544.8],["2026-04-18",1544.6],["2026-04-19",1472.8],["2026-04-20",1434.5],["2026-04-21",1442.8],["2026-04-22",1410.8],["2026-04-23",1347.1],["2026-04-24",1298.8],["2026-04-25",1258.5],["2026-04-26",1180.1],["2026-04-27",1114.2],["2026-04-28",1112.8],["2026-04-29",1134.3],["2026-04-30",1167.8],["2026-05-01",1170.9],["2026-05-02",1139.1],["2026-05-03",1098.5],["2026-05-04",1093.6],["2026-05-05",1138.0],["2026-05-06",1209.8],["2026-05-07",1250.4],["2026-05-08",1212.7],["2026-05-09",1180.7],["2026-05-10",1156.9],["2026-05-11",1137.0],["2026-05-12",1132.2],["2026-05-13",1196.1],["2026-05-14",1233.6],["2026-05-15",1264.6],["2026-05-16",1309.8],["2026-05-17",1382.8],["2026-05-18",1380.0],["2026-05-19",1297.5],["2026-05-20",1252.5],["2026-05-21",1256.0],["2026-05-22",1230.3],["2026-05-23",1252.4],["2026-05-24",1249.9],["2026-05-25",1210.9],["2026-05-26",1214.4],["2026-05-27",1250.4],["2026-05-28",1295.2],["2026-05-29",1346.9],["2026-05-30",1384.2],["2026-05-31",1358.2],["2026-06-01",1300.7],["2026-06-02",1347.2],["2026-06-03",1496.4],["2026-06-04",1583.0],["2026-06-05",1669.2],["2026-06-06",1582.9],["2026-06-07",1516.2],["2026-06-08",1499.7],["2026-06-09",1417.9],["2026-06-10",1303.2],["2026-06-11",1424.8],["2026-06-12",2001.4],["2026-06-13",2119.1],["2026-06-14",2262.7],["2026-06-15",2187.7],["2026-06-16",1910.9],["2026-06-17",1727.7],["2026-06-18",1606.3],["2026-06-19",1524.2],["2026-06-20",1455.7],["2026-06-21",1382.6],["2026-06-22",1320.3],["2026-06-23",1313.5],["2026-06-24",1310.1],["2026-06-25",1298.2],["2026-06-26",1282.3],["2026-06-27",1240.5],["2026-06-28",1152.8],["2026-06-29",1112.0],["2026-06-30",1107.4],["2026-07-01",1172.3],["2026-07-02",1274.8],["2026-07-03",1383.2],["2026-07-04",1398.6],["2026-07-05",1239.7],["2026-07-06",1095.0],["2026-07-07",1043.1],["2026-07-08",1045.8],["2026-07-09",1055.0],["2026-07-10",1068.8],["2026-07-11",1018.0],["2026-07-12",953.1],["2026-07-13",922.6],["2026-07-14",902.5],["2026-07-15",880.8],["2026-07-16",881.9],["2026-07-17",919.6]]; // [ISO date, mean discharge m3/s]
+const BALATON = 1.9;   // km³, approximate
+
+const css = n => getComputedStyle(document.querySelector(".viz-root")).getPropertyValue(n).trim();
+const fmt = (v, d = 0) => v.toLocaleString("en-US", { maximumFractionDigits: d });
+const fmtDate = d => new Date(d + "T12:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+const NS = "http://www.w3.org/2000/svg";
+
+// cumulative km³
+let acc = 0;
+const CUM = DATA.map(r => { acc += r[1] * 86400 / 1e9; return [r[0], r[1], acc]; });
+const total = acc, balatons = total / BALATON;
+const peak = DATA.reduce((a, b) => (b[1] > a[1] ? b : a));
+const low = DATA.reduce((a, b) => (b[1] < a[1] ? b : a));
+
+document.getElementById("tiles").innerHTML = `
+  <div class="tile"><div class="label">Water past Budapest in a year</div><div class="value">${fmt(total, 1)}<small> km³</small></div><div class="sub">integrated from daily means</div></div>
+  <div class="tile"><div class="label">In Lake Balatons</div><div class="value">≈${fmt(balatons, 0)}</div><div class="sub">one Balaton every ~${fmt(366 / balatons, 0)} days</div></div>
+  <div class="tile"><div class="label">Biggest day</div><div class="value">${fmt(peak[1])}<small> m³/s</small></div><div class="sub">${fmtDate(peak[0])}, flood crest</div></div>
+  <div class="tile"><div class="label">Driest day</div><div class="value">${fmt(low[1])}<small> m³/s</small></div><div class="sub">${fmtDate(low[0])} — ${(peak[1] / low[1]).toFixed(1)}× less than the crest</div></div>`;
+
+const el = (svg, tag, attrs) => {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  svg.appendChild(e); return e;
+};
+const txt = (svg, s, attrs) => { const t = el(svg, "text", { class: "chart-text", ...attrs }); t.textContent = s; return t; };
+
+function chart({ svgId, tipId, H, val, unit, dec, axisDec = 0, yStep, area, marks, annotate }) {
+  const W = 960, M = { t: 18, r: 16, b: 30, l: 56 };
+  const svg = document.getElementById(svgId), tip = document.getElementById(tipId);
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const iw = W - M.l - M.r, ih = H - M.t - M.b;
+  const t0 = Date.parse(CUM[0][0]), t1 = Date.parse(CUM[CUM.length - 1][0]);
+  const vMax = Math.ceil(Math.max(...CUM.map(val)) / yStep) * yStep;
+  const x = r => M.l + (Date.parse(r[0]) - t0) / (t1 - t0) * iw;
+  const y = v => M.t + ih - v / vMax * ih;
+
+  for (let v = 0; v <= vMax; v += yStep) {
+    el(svg, "line", { x1: M.l, x2: W - M.r, y1: y(v), y2: y(v), stroke: v === 0 ? css("--baseline") : css("--grid"), "stroke-width": 1 });
+    if (v > 0) txt(svg, fmt(v, axisDec), { x: M.l - 8, y: y(v) + 4, "text-anchor": "end", "font-size": 12, fill: css("--text-muted") });
+  }
+  if (marks) marks(svg, x, y, M, W);
+  for (const r of CUM) {
+    if (r[0].endsWith("-01")) {
+      const lbl = new Date(r[0] + "T12:00:00Z").toLocaleDateString("en-GB", { month: "short", timeZone: "UTC" });
+      txt(svg, lbl + (r[0].endsWith("-01-01") ? " ’26" : ""), { x: x(r), y: H - 8, "text-anchor": "middle", "font-size": 12, fill: css("--text-muted") });
+    }
+  }
+  const line = CUM.map((r, i) => `${i ? "L" : "M"}${x(r).toFixed(1)},${y(val(r)).toFixed(1)}`).join("");
+  if (area) el(svg, "path", { d: line + `L${x(CUM[CUM.length - 1]).toFixed(1)},${y(0)}L${x(CUM[0]).toFixed(1)},${y(0)}Z`, fill: css("--series-1"), "fill-opacity": 0.13 });
+  el(svg, "path", { d: line, fill: "none", stroke: css("--series-1"), "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" });
+  if (annotate) annotate(svg, x, y);
+
+  const cross = el(svg, "line", { y1: M.t, y2: H - M.b, stroke: css("--text-muted"), "stroke-width": 1, visibility: "hidden" });
+  const dot = el(svg, "circle", { r: 4.5, fill: css("--series-1"), stroke: css("--surface-1"), "stroke-width": 2, visibility: "hidden" });
+  let idx = -1;
+  const show = i => {
+    idx = Math.max(0, Math.min(CUM.length - 1, i));
+    const r = CUM[idx], px = x(r);
+    cross.setAttribute("x1", px); cross.setAttribute("x2", px); cross.setAttribute("visibility", "visible");
+    dot.setAttribute("cx", px); dot.setAttribute("cy", y(val(r))); dot.setAttribute("visibility", "visible");
+    tip.replaceChildren();
+    const dEl = document.createElement("div"); dEl.className = "date"; dEl.textContent = fmtDate(r[0]); tip.appendChild(dEl);
+    const row = document.createElement("div"); row.className = "row";
+    const key = document.createElement("span"); key.className = "key";
+    const v = document.createElement("span"); v.className = "val"; v.textContent = fmt(val(r), dec) + " " + unit;
+    row.append(key, v); tip.appendChild(row);
+    tip.style.display = "block";
+    const box = svg.getBoundingClientRect(), card = svg.parentElement.getBoundingClientRect();
+    const left = box.left - card.left + px * (box.width / 960);
+    tip.style.left = Math.min(left + 14, card.width - tip.offsetWidth - 8) + "px";
+    tip.style.top = (box.top - card.top + 30) + "px";
+  };
+  const hide = () => { cross.setAttribute("visibility", "hidden"); dot.setAttribute("visibility", "hidden"); tip.style.display = "none"; idx = -1; };
+  svg.addEventListener("pointermove", ev => {
+    const box = svg.getBoundingClientRect();
+    const mx = (ev.clientX - box.left) / box.width * 960;
+    show(Math.round((mx - M.l) / iw * (CUM.length - 1)));
+  });
+  svg.addEventListener("pointerleave", hide);
+  svg.addEventListener("focus", () => show(CUM.length - 1));
+  svg.addEventListener("blur", hide);
+  svg.addEventListener("keydown", ev => {
+    const step = { ArrowLeft: -1, ArrowRight: 1, PageDown: -30, PageUp: 30, Home: -1e9, End: 1e9 }[ev.key];
+    if (step) { ev.preventDefault(); show((idx < 0 ? CUM.length - 1 : idx) + step); }
+  });
+}
+
+chart({
+  svgId: "chart-q", tipId: "tip-q", H: 300,
+  val: r => r[1], unit: "m³/s", dec: 0, yStep: 1000,
+  annotate: (svg, x, y) => {
+    el(svg, "circle", { cx: x(peak), cy: y(peak[1]), r: 4.5, fill: css("--series-1"), stroke: css("--surface-1"), "stroke-width": 2 });
+    txt(svg, `${fmtDate(peak[0])} · ${fmt(peak[1])} m³/s`, { x: x(peak) + 9, y: y(peak[1]) - 6, "font-size": 12, "font-weight": 600, fill: css("--text-primary") });
+    el(svg, "circle", { cx: x(low), cy: y(low[1]), r: 4.5, fill: css("--series-1"), stroke: css("--surface-1"), "stroke-width": 2 });
+    txt(svg, `${fmt(low[1])} m³/s`, { x: x(low) - 9, y: y(low[1]) - 10, "text-anchor": "end", "font-size": 12, "font-weight": 600, fill: css("--text-primary") });
+  },
+});
+
+chart({
+  svgId: "chart-v", tipId: "tip-v", H: 320,
+  val: r => r[2], unit: "km³", dec: 1, axisDec: 1, yStep: BALATON * 5, area: true,
+  marks: (svg, x, y, M, W) => {
+    // a Balaton tick every 1.9 km³; label every 5th
+    const vMax = CUM[CUM.length - 1][2];
+    for (let b = 1; b * BALATON <= vMax + BALATON; b++) {
+      if (b % 5 === 0) {
+        txt(svg, `${b} Balatons`, { x: W - M.r, y: y(b * BALATON) - 5, "text-anchor": "end", "font-size": 11.5, fill: css("--text-secondary") });
+      }
+    }
+  },
+  annotate: (svg, x, y) => {
+    const last = CUM[CUM.length - 1];
+    el(svg, "circle", { cx: x(last), cy: y(last[2]), r: 4.5, fill: css("--series-1"), stroke: css("--surface-1"), "stroke-width": 2 });
+    txt(svg, `${fmt(last[2], 1)} km³ ≈ ${fmt(last[2] / BALATON, 0)} Balatons`, { x: x(last) - 10, y: y(last[2]) + 18, "text-anchor": "end", "font-size": 12.5, "font-weight": 600, fill: css("--text-primary") });
+  },
+});
+
+// y-axis labels of volume chart are km³ multiples of 9.5 — clean enough; table:
+const tbody = document.querySelector("#datatable tbody");
+for (const r of CUM) {
+  const tr = document.createElement("tr");
+  for (const v of [fmtDate(r[0]), fmt(r[1]), fmt(r[2], 2), fmt(r[2] / BALATON, 1)]) {
+    const td = document.createElement("td"); td.textContent = v; tr.appendChild(td);
+  }
+  tbody.appendChild(tr);
+}
+</script>
+</body>
+</html>

@@ -28,7 +28,8 @@ The CLI is the primary interface; MCP tools are thin adapters over identical ope
 ## What it can do
 
 - Discover and inspect public OVF ArcGIS datasets.
-- Search surface-water stations by name, municipality, or watercourse.
+- Search surface-water stations and shallow-groundwater wells (`--network wells`) by
+  name, municipality, or watercourse.
 - Find the nearest stations to WGS84 coordinates.
 - List authoritative measurement codes, units, accepted ranges, and data types.
 - Inspect temporal coverage before requesting observations.
@@ -62,6 +63,12 @@ vizugy observations aggregate surface:818 \
 
 More examples, each built the same way:
 
+- **[A year of the Danube, measured in Balatons](https://kalcifield.github.io/ovf-data-mcp/examples/danube-in-balatons.html)**
+  ([source](docs/examples/danube-in-balatons.html)) — 47 km³ of water passed Budapest
+  this year, about one Lake Balaton every 15 days, integrated from daily discharge.
+- **[The sinking water table of the Homokhátság](https://kalcifield.github.io/ovf-data-mcp/examples/homokhatsag-groundwater.html)**
+  ([source](docs/examples/homokhatsag-groundwater.html)) — three shallow wells on the
+  Danube–Tisza ridge, up to 92 years each: the water table has sunk 1–3 metres.
 - **[Danube at Budapest — water level, last 12 months](https://kalcifield.github.io/ovf-data-mcp/examples/danube-water-level.html)**
   ([source](docs/examples/danube-water-level.html)) — daily mean with min–max range
   and the flood-alert threshold at the Budapest gauge.

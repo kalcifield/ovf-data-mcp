@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The sinking water table of the Homokhátság | ovf-data-mcp example</title>
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  .viz-root {
+    color-scheme: light;
+    --page: #f9f9f7; --surface-1: #fcfcfb;
+    --text-primary: #0b0b0b; --text-secondary: #52514e; --text-muted: #898781;
+    --grid: #e1e0d9; --baseline: #c3c2b7; --border: rgba(11,11,11,0.10);
+    --series-1: #2a78d6;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page); color: var(--text-primary);
+    min-height: 100vh; padding: 32px 16px 48px;
+  }
+  .wrap { max-width: 1000px; margin: 0 auto; }
+  header h1 { font-size: 22px; font-weight: 650; }
+  header p { color: var(--text-secondary); font-size: 14px; margin-top: 6px; max-width: 75ch; }
+  header p a { color: inherit; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 24px 0 16px; }
+  .tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .tile .label { font-size: 13px; color: var(--text-secondary); }
+  .tile .value { font-size: 30px; font-weight: 600; margin-top: 4px; }
+  .tile .value small { font-size: 15px; font-weight: 500; color: var(--text-secondary); }
+  .tile .sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 18px 18px 10px; position: relative; }
+  .card h2 { font-size: 15px; font-weight: 600; }
+  .card .sub { font-size: 13px; color: var(--text-secondary); margin: 4px 0 10px; }
+  svg { display: block; width: 100%; height: auto; outline: none; }
+  svg:focus-visible { outline: 2px solid var(--series-1); outline-offset: 2px; border-radius: 6px; }
+  .tooltip {
+    position: absolute; pointer-events: none; display: none;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.12); padding: 8px 12px; font-size: 13px; min-width: 190px; z-index: 2;
+  }
+  .tooltip .date { font-weight: 600; margin-bottom: 4px; }
+  .tooltip .row { display: flex; align-items: center; gap: 7px; margin-top: 2px; }
+  .tooltip .key { width: 14px; height: 0; border-top: 2px solid var(--series-1); flex: none; }
+  .tooltip .val { font-weight: 600; font-variant-numeric: tabular-nums; min-width: 64px; text-align: right; }
+  .tooltip .name { color: var(--text-secondary); }
+  details { margin-top: 16px; background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+  summary { cursor: pointer; font-size: 14px; font-weight: 600; color: var(--text-secondary); }
+  .tablebox { max-height: 340px; overflow: auto; margin-top: 10px; }
+  table { border-collapse: collapse; font-size: 13px; width: 100%; }
+  th, td { text-align: right; padding: 4px 12px; font-variant-numeric: tabular-nums; border-bottom: 1px solid var(--grid); }
+  th:first-child, td:first-child { text-align: left; }
+  thead th { position: sticky; top: 0; background: var(--surface-1); color: var(--text-secondary); font-weight: 600; }
+  footer { margin-top: 24px; font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+  footer h3 { font-size: 13px; color: var(--text-primary); margin-bottom: 4px; }
+  footer pre { background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; overflow-x: auto; font-size: 12.5px; margin: 8px 0; }
+  footer a { color: inherit; }
+  .chart-text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+</style>
+</head>
+<body>
+<div class="viz-root">
+<div class="wrap">
+  <header>
+    <h1>The sinking water table of the Homokhátság</h1>
+    <p>Shallow groundwater depth at three monitoring wells on the Danube–Tisza sand ridge —
+       Hungary’s slowly drying interior. Yearly mean depth to groundwater has grown by roughly
+       <strong>2.5–4 metres</strong> since the mid-20th century, and all three wells are near
+       their deepest readings on record. Public OVF well data retrieved by an AI agent through
+       <a href="https://github.com/kalcifield/ovf-data-mcp">ovf-data-mcp</a>. Operational data — preliminary, unchecked.</p>
+  </header>
+
+  <div class="tiles" id="tiles"></div>
+
+  <div class="card">
+    <h2>Yearly mean depth to groundwater (cm below well datum)</h2>
+    <p class="sub">One panel per well · deeper is lower · y-scales aligned per panel · hover or focus + arrow keys for values</p>
+    <svg id="chart" tabindex="0" role="img"
+         aria-label="Three stacked line charts of yearly mean groundwater depth at wells in Orgovány and Jakabszállás on the Danube–Tisza ridge, from as early as 1934 to 2025. All three lines trend downward — the water table sinking — from roughly 1.4 to 2.6 metres depth in the mid-20th century to roughly 3 to 5.6 metres today. Full values in the data table below."></svg>
+    <div class="tooltip" id="tooltip"></div>
+  </div>
+
+  <details>
+    <summary>Data table — yearly mean depth, all three wells</summary>
+    <div class="tablebox"><table id="datatable"><thead></thead><tbody></tbody></table></div>
+  </details>
+
+  <footer>
+    <h3>How this page was made</h3>
+    <p>This page needed a tool extension: the shallow-groundwater well network (2,004 stations)
+       wasn’t exposed by the CLI, so the agent added a <code>--network wells</code> option, then
+       queried three long-record wells the same way as any river gauge:</p>
+    <pre>vizugy stations search "" --network wells --municipality Orgovány
+vizugy observations coverage well:1414        # available from 1934-01-02
+vizugy observations aggregate well:1414 --start 1934-01-01T00:00:00Z \
+    --end 1960-01-01T00:00:00Z --interval yearly --operation avg   # × 4 windows × 3 wells</pre>
+    <p>These commands are the only data source. The agent then merged the JSON responses and
+       wrote this page’s HTML, CSS, and JavaScript itself — no chart libraries, no build step.</p>
+    <p>Source: Országos Vízügyi Főigazgatóság (OVF) via the public
+       <a href="https://vmservice.vizugy.hu/vraquery/swagger/index.html">VRAQuery API</a> ·
+       metric “Talajvízállás” (shallow groundwater level, cm), data type “operatív összefésült” ·
+       retrieved 2026-07-18 11:29 (UTC). Values are read relative to each well’s own datum and are
+       interpreted here as depth (a growing value = a sinking water table), consistent with the
+       documented multi-decade groundwater decline of the ridge; absolute depths below terrain
+       may differ per well — confirm datum details with OVF before quantitative reuse. Wells are
+       not comparable to each other in absolute terms. 2026 is partial and omitted.
+       Operational values may be preliminary; for checked data follow OVF’s formal data-request process.</p>
+  </footer>
+</div>
+</div>
+<script>
+"use strict";
+const WELLS = [{"id":"1414","name":"Orgovány","rows":[[1934,140.9],[1935,148.2],[1936,142.7],[1937,126.9],[1938,136.8],[1939,124.2],[1940,100.1],[1941,134.7],[1942,142.3],[1943,187.5],[1944,132.8],[1945,184.3],[1946,190.1],[1947,158.9],[1948,197.9],[1949,193.4],[1950,179.6],[1951,140.9],[1952,149.0],[1953,126.0],[1954,157.3],[1955,146.1],[1956,129.4],[1957,152.6],[1958,161.9],[1959,146.3],[1960,157.7],[1961,191.3],[1962,217.4],[1963,204.0],[1964,189.8],[1965,156.7],[1966,156.6],[1967,178.0],[1968,218.8],[1969,192.9],[1970,153.3],[1971,186.9],[1972,197.1],[1973,215.6],[1974,200.8],[1975,178.8],[1976,202.5],[1977,199.0],[1978,207.5],[1979,212.8],[1980,216.7],[1981,219.8],[1982,225.2],[1983,251.3],[1984,276.6],[1985,314.5],[1986,279.9],[1987,262.8],[1988,272.8],[1989,310.3],[1990,336.9],[1991,338.3],[1992,365.2],[1993,386.5],[1994,356.5],[1995,412.3],[1996,318.3],[1997,312.0],[1998,322.8],[1999,269.8],[2000,236.0],[2001,287.5],[2002,303.2],[2003,304.4],[2004,309.2],[2005,313.7],[2006,305.5],[2007,327.0],[2008,357.6],[2009,388.4],[2010,338.0],[2011,282.1],[2012,340.9],[2013,329.4],[2014,357.2],[2015,309.4],[2016,316.1],[2017,343.8],[2018,324.0],[2019,366.7],[2020,404.2],[2021,422.6],[2022,464.1],[2023,503.4],[2024,523.9],[2025,558.5]]},{"id":"1385","name":"Orgovány","rows":[[1960,259.1],[1961,243.4],[1962,274.4],[1963,275.8],[1964,274.2],[1965,232.3],[1966,205.9],[1967,230.3],[1968,287.5],[1969,273.7],[1970,220.5],[1971,251.2],[1972,284.2],[1973,291.7],[1974,293.0],[1975,264.3],[1976,280.6],[1977,264.0],[1978,287.7],[1979,284.2],[1980,287.9],[1981,279.0],[1982,294.9],[1983,329.2],[1984,361.8],[1985,353.1],[1986,340.4],[1987,319.2],[1988,317.2],[1989,345.1],[1990,366.6],[1991,344.7],[1992,351.2],[1993,369.2],[1994,355.5],[1995,353.5],[1996,288.8],[1997,302.8],[1998,299.6],[1999,257.5],[2000,236.5],[2001,292.2],[2002,318.3],[2003,349.2],[2004,334.7],[2005,301.5],[2006,282.4],[2007,338.2],[2008,354.8],[2009,378.8],[2010,288.8],[2011,257.2],[2012,345.5],[2013,330.2],[2014,332.7],[2015,290.7],[2016,298.3],[2017,313.8],[2018,303.9],[2019,333.4],[2020,372.7],[2021,407.9],[2022,454.6],[2023,460.6],[2024,475.4],[2025,506.1]]},{"id":"1390","name":"Jakabszállás","rows":[[1960,196.6],[1961,200.1],[1962,231.1],[1963,208.3],[1964,193.3],[1965,165.9],[1966,162.4],[1967,185.2],[1968,237.8],[1969,205.9],[1970,166.9],[1971,196.9],[1972,220.2],[1973,224.2],[1974,215.1],[1975,177.1],[1976,204.0],[1977,214.2],[1978,229.8],[1979,234.0],[1980,242.9],[1981,234.4],[1982,234.3],[1983,280.9],[1984,307.5],[1985,296.1],[1986,274.8],[1987,261.5],[1988,255.6],[1989,283.9],[1990,307.6],[1991,280.8],[1992,281.3],[1993,288.5],[1994,294.6],[1995,314.0],[1996,231.6],[1997,249.5],[1998,256.6],[1999,207.2],[2000,204.6],[2001,267.2],[2002,300.7],[2003,319.0],[2004,301.7],[2005,268.1],[2006,244.6],[2007,324.4],[2008,337.9],[2009,345.1],[2010,244.8],[2011,199.6],[2012,279.1],[2013,259.8],[2014,254.0],[2015,241.1],[2016,230.6],[2017,255.9],[2018,234.7],[2019,291.8],[2020,294.7],[2021,326.3],[2022,362.8],[2023,373.7],[2024,378.4],[2025,386.4]]}]; // [{id, name, rows: [[year, cm depth]]}]
+
+const css = n => getComputedStyle(document.querySelector(".viz-root")).getPropertyValue(n).trim();
+const fmt = v => v.toLocaleString("en-US", { maximumFractionDigits: 1 });
+const NS = "http://www.w3.org/2000/svg";
+
+for (const w of WELLS) {
+  const early = w.rows.filter(r => r[0] <= w.rows[0][0] + 9).map(r => r[1]);
+  const late = w.rows.filter(r => r[0] >= 2016).map(r => r[1]);
+  w.early = early.reduce((a, b) => a + b, 0) / early.length;
+  w.late = late.reduce((a, b) => a + b, 0) / late.length;
+  w.drop = w.late - w.early;
+}
+const maxDrop = WELLS.reduce((a, b) => (b.drop > a.drop ? b : a));
+document.getElementById("tiles").innerHTML = `
+  <div class="tile"><div class="label">Wells shown</div><div class="value">3</div><div class="sub">of 2,004 in the shallow-well network</div></div>
+  <div class="tile"><div class="label">Longest record</div><div class="value">${WELLS[0].rows.length}<small> years</small></div><div class="sub">${WELLS[0].name}, since ${WELLS[0].rows[0][0]}</div></div>
+  <div class="tile"><div class="label">Largest sink</div><div class="value">−${fmt(maxDrop.drop / 100)}<small> m</small></div><div class="sub">${maxDrop.name}, first decade vs 2016–25</div></div>
+  <div class="tile"><div class="label">Deepest reading</div><div class="value">${fmt(Math.max(...WELLS.flatMap(w => w.rows.map(r => r[1]))) / 100)}<small> m</small></div><div class="sub">yearly mean, 2025</div></div>`;
+
+// ---- small multiples, y inverted (depth grows downward) ----
+const W = 960, PH = 150, GAP = 8, M = { t: 8, r: 16, b: 26, l: 56 };
+const N = WELLS.length, H = M.t + N * PH + (N - 1) * GAP + M.b;
+const y0 = Math.min(...WELLS.flatMap(w => w.rows.map(r => r[0])));
+const y1 = 2025;
+const iw = W - M.l - M.r;
+const x = yr => M.l + (yr - y0) / (y1 - y0) * iw;
+
+const svg = document.getElementById("chart");
+svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+const el = (tag, attrs, parent) => {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  (parent || svg).appendChild(e); return e;
+};
+const txt = (s, attrs) => { const t = el("text", { class: "chart-text", ...attrs }); t.textContent = s; return t; };
+
+WELLS.forEach((w, wi) => {
+  const top = M.t + wi * (PH + GAP), bot = top + PH - 20;
+  const vals = w.rows.map(r => r[1]);
+  const vMin = Math.min(...vals), vMax = Math.max(...vals);
+  const pad = (vMax - vMin) * 0.10;
+  // inverted: small depth (high water) at top
+  const y = v => top + 20 + (v - (vMin - pad)) / ((vMax + pad) - (vMin - pad)) * (bot - top - 20);
+  w.y = y;
+
+  txt(`${w.name} · well:${w.id} · since ${w.rows[0][0]}`, { x: M.l, y: top + 12, "font-size": 12.5, "font-weight": 600, fill: css("--text-primary") });
+  for (const v of [Math.ceil(vMin / 100) * 100, Math.floor(vMax / 100) * 100]) {
+    el("line", { x1: M.l, x2: W - M.r, y1: y(v), y2: y(v), stroke: css("--grid"), "stroke-width": 1 });
+    txt(`${fmt(v / 100)} m`, { x: M.l - 8, y: y(v) + 4, "text-anchor": "end", "font-size": 11, fill: css("--text-muted") });
+  }
+  const path = w.rows.map((r, i) => `${i ? "L" : "M"}${x(r[0]).toFixed(1)},${y(r[1]).toFixed(1)}`).join("");
+  el("path", { d: path, fill: "none", stroke: css("--series-1"), "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" });
+
+  const last = w.rows[w.rows.length - 1];
+  el("circle", { cx: x(last[0]), cy: y(last[1]), r: 4.5, fill: css("--series-1"), stroke: css("--surface-1"), "stroke-width": 2 });
+  txt(`2025 · ${fmt(last[1] / 100)} m deep · ${fmt(w.drop / 100)} m below its first decade`, { x: x(last[0]) - 9, y: y(last[1]) + 16, "text-anchor": "end", "font-size": 12, "font-weight": 600, fill: css("--text-primary") });
+});
+
+for (let yr = Math.ceil(y0 / 10) * 10; yr <= 2020; yr += 10) {
+  txt(String(yr), { x: x(yr), y: H - 6, "text-anchor": "middle", "font-size": 11.5, fill: css("--text-muted") });
+}
+
+// ---- crosshair + tooltip (shared year axis) ----
+const cross = el("line", { y1: M.t, y2: H - M.b, stroke: css("--text-muted"), "stroke-width": 1, visibility: "hidden" });
+const dots = WELLS.map(() => el("circle", { r: 4, fill: css("--series-1"), stroke: css("--surface-1"), "stroke-width": 2, visibility: "hidden" }));
+const tip = document.getElementById("tooltip");
+let year = -1;
+
+function show(yr) {
+  year = Math.max(y0, Math.min(y1, Math.round(yr)));
+  const px = x(year);
+  cross.setAttribute("x1", px); cross.setAttribute("x2", px); cross.setAttribute("visibility", "visible");
+  tip.replaceChildren();
+  const dEl = document.createElement("div"); dEl.className = "date"; dEl.textContent = String(year); tip.appendChild(dEl);
+  WELLS.forEach((w, wi) => {
+    const r = w.rows.find(r => r[0] === year);
+    if (!r) { dots[wi].setAttribute("visibility", "hidden"); return; }
+    dots[wi].setAttribute("cx", px); dots[wi].setAttribute("cy", w.y(r[1])); dots[wi].setAttribute("visibility", "visible");
+    const row = document.createElement("div"); row.className = "row";
+    const key = document.createElement("span"); key.className = "key";
+    const v = document.createElement("span"); v.className = "val"; v.textContent = fmt(r[1] / 100) + " m";
+    const n = document.createElement("span"); n.className = "name"; n.textContent = w.name;
+    row.append(key, v, n); tip.appendChild(row);
+  });
+  tip.style.display = "block";
+  const box = svg.getBoundingClientRect(), card = svg.parentElement.getBoundingClientRect();
+  const left = box.left - card.left + px * (box.width / W);
+  tip.style.left = Math.min(left + 14, card.width - tip.offsetWidth - 8) + "px";
+  tip.style.top = (box.top - card.top + 40) + "px";
+}
+function hide() { cross.setAttribute("visibility", "hidden"); dots.forEach(d => d.setAttribute("visibility", "hidden")); tip.style.display = "none"; year = -1; }
+
+svg.addEventListener("pointermove", ev => {
+  const box = svg.getBoundingClientRect();
+  const mx = (ev.clientX - box.left) / box.width * W;
+  show(y0 + (mx - M.l) / iw * (y1 - y0));
+});
+svg.addEventListener("pointerleave", hide);
+svg.addEventListener("focus", () => show(y1));
+svg.addEventListener("blur", hide);
+svg.addEventListener("keydown", ev => {
+  const step = { ArrowLeft: -1, ArrowRight: 1, PageDown: -10, PageUp: 10, Home: -1e9, End: 1e9 }[ev.key];
+  if (step) { ev.preventDefault(); show((year < 0 ? y1 : year) + step); }
+});
+
+// ---- table ----
+const years = [];
+for (let yr = y0; yr <= y1; yr++) years.push(yr);
+const thead = document.querySelector("#datatable thead");
+const hr = document.createElement("tr");
+for (const h of ["Year", ...WELLS.map(w => `${w.name} (m)`)]) {
+  const th = document.createElement("th"); th.textContent = h; hr.appendChild(th);
+}
+thead.appendChild(hr);
+const tbody = document.querySelector("#datatable tbody");
+for (const yr of years) {
+  const tr = document.createElement("tr");
+  const cells = [String(yr), ...WELLS.map(w => { const r = w.rows.find(r => r[0] === yr); return r ? fmt(r[1] / 100) : "—"; })];
+  for (const v of cells) { const td = document.createElement("td"); td.textContent = v; tr.appendChild(td); }
+  tbody.appendChild(tr);
+}
+</script>
+</body>
+</html>
