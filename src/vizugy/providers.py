@@ -7,7 +7,7 @@ from typing import Any
 
 import httpx
 
-from .errors import NotFoundError, UpstreamError
+from .errors import AccessDeniedError, NotFoundError, UpstreamError
 from .models import Dataset, DatasetDescription, Field, Provenance
 
 
@@ -37,10 +37,12 @@ class ArcGISProvider:
                     code = data["error"].get("code")
                     if code == 404:
                         raise NotFoundError(path)
+                    if code in (403, 498, 499):
+                        raise AccessDeniedError(f"requires ArcGIS authentication (code {code})")
                     raise UpstreamError(data["error"].get("message", "ArcGIS error"))
                 self._cache[url] = (time.monotonic() + self.cache_ttl, data)
                 return data
-            except NotFoundError:
+            except (NotFoundError, AccessDeniedError):
                 raise
             except (httpx.HTTPError, ValueError, UpstreamError) as exc:
                 error = exc

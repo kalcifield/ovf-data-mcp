@@ -104,7 +104,7 @@ async def test_protected_folder_becomes_explicit_warning():
     try:
         page = await VizugyService(provider).list_datasets()
         assert page.total == 1
-        assert "Token Required" in page.warnings[0]
+        assert "requires ArcGIS authentication" in page.warnings[0]
     finally:
         await provider.close()
 
@@ -174,3 +174,27 @@ async def test_long_aggregate_windows_bisect_on_upstream_failure():
         assert len(calls) >= 3  # one failed full-window attempt plus the halves
     finally:
         await service.close()
+
+
+@pytest.mark.asyncio
+async def test_protected_arcgis_folder_fails_fast_without_retries():
+    attempts = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        attempts.append(request.url.path)
+        if request.url.path.endswith("/services"):
+            return httpx.Response(
+                200, json={"currentVersion": 10.61, "folders": ["TIVIZIG"], "services": []}
+            )
+        return httpx.Response(200, json={"error": {"code": 499, "message": "Token Required"}})
+
+    provider = ArcGISProvider("https://example.test/arcgis/rest", cache_ttl=300)
+    provider.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    try:
+        page = await VizugyService(provider).list_datasets()
+        assert page.total == 0
+        assert any("requires ArcGIS authentication" in w for w in page.warnings)
+        folder_attempts = [p for p in attempts if p.endswith("/TIVIZIG")]
+        assert len(folder_attempts) == 1  # deterministic auth error: no retries
+    finally:
+        await provider.close()

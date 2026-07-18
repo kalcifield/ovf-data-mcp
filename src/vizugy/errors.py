@@ -8,3 +8,7 @@ class UpstreamError(VizugyError):
 
 class NotFoundError(VizugyError):
     pass
+
+
+class AccessDeniedError(UpstreamError):
+    """Upstream resource exists but requires authentication; retrying cannot help."""
