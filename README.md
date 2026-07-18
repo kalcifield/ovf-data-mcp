@@ -3,6 +3,11 @@
 Agent-friendly, read-only access to public Hungarian water-management data from the
 Országos Vízügyi Főigazgatóság (OVF).
 
+> [!WARNING]
+> This repository is an experimental proof of concept, not a finished or supported
+> production service. Interfaces and upstream integrations may change. See
+> [`TODO.md`](TODO.md) for known limitations.
+
 `vizugy` supports the investigation workflow agents actually need:
 
 ```text
