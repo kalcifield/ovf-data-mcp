@@ -57,6 +57,15 @@ vizugy observations aggregate surface:1026 \
     --interval daily --operation avg   # + min, max
 ```
 
+More examples, each built the same way:
+
+- **[A flood wave travelling down the Danube](https://kalcifield.github.io/ovf-data-mcp/examples/danube-flood-wave.html)**
+  ([source](docs/examples/danube-flood-wave.html)) — small multiples of five gauges,
+  Komárom to Mohács, tracking the February 2026 crest across ~320 river-km in 3 days.
+- **[How low are Hungary's rivers right now?](https://kalcifield.github.io/ovf-data-mcp/examples/rivers-drought-scoreboard.html)**
+  ([source](docs/examples/rivers-drought-scoreboard.html)) — six gauges across the
+  Duna, Tisza, Dráva and Balaton, each placed in its own 12-month range.
+
 ## Data sources
 
 | Source | Purpose | Status |
