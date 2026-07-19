@@ -31,6 +31,8 @@ NETWORKS = {
     "deep-wells": (13, "deep-well"),
     "precipitation": (14, "precip"),
 }
+SOIL_METRIC_CODES = frozenset({299, 303})
+SOIL_DEPTHS_CM = (10, 20, 30, 45, 60, 75)
 
 T = TypeVar("T")
 
@@ -285,7 +287,7 @@ class VRAProvider:
 
     @staticmethod
     def _dimensions(metric_code: int, data_ext: int | None) -> dict[str, int]:
-        if metric_code in {299, 303} and data_ext is not None:
+        if metric_code in SOIL_METRIC_CODES and data_ext is not None:
             return {"depth_cm": data_ext}
         return {}
 
@@ -362,6 +364,9 @@ class VRAProvider:
     async def _coverage_rows_for_ids(
         self, station_ids: list[int], metric_code: int, data_type_code: int
     ) -> list[dict[str, Any]]:
+        # VRA list endpoints may interpret an empty identifier list as unbounded.
+        if not station_ids:
+            return []
         response = await self._request(
             "POST",
             "Base/DataCatalogMinMax",
@@ -446,7 +451,7 @@ class VRAProvider:
         operation: str,
     ) -> tuple[dict[int, list[Observation]], dict[str, Any]]:
         metric = await self.resolve_metric(metric_name)
-        if metric["KodAZ"] not in {299, 303}:
+        if metric["KodAZ"] not in SOIL_METRIC_CODES:
             raise ValueError("depth_cm is only defined for soil moisture and soil temperature")
         data_type = await self.resolve_data_type(data_type_name)
         filters = [

@@ -20,7 +20,11 @@ from .models import (
     StationPage,
 )
 from .providers import ArcGISProvider
-from .vra_provider import NETWORKS, VRAProvider
+from .vra_provider import NETWORKS, SOIL_DEPTHS_CM, SOIL_METRIC_CODES, VRAProvider
+
+
+AGGREGATION_INTERVALS = frozenset({"daily", "tenday", "monthly", "yearly"})
+AGGREGATION_OPERATIONS = frozenset({"min", "max", "avg", "sum", "cnt", "mean", "cntday"})
 
 
 class VizugyService:
@@ -116,6 +120,8 @@ class VizugyService:
         network: str = "surface",
         metric: str | None = None,
     ) -> StationPage:
+        if not 1 <= limit <= 100:
+            raise ValueError("limit must be between 1 and 100")
         items = (
             await self._vra().stations_with_metric(network, metric)
             if metric
@@ -373,12 +379,7 @@ class VizugyService:
         data_ext: int | None = None,
         depth_cm: int | None = None,
     ) -> ObservationResult:
-        intervals = {"daily", "tenday", "monthly", "yearly"}
-        operations = {"min", "max", "avg", "sum", "cnt", "mean", "cntday"}
-        if interval not in intervals:
-            raise ValueError(f"interval must be one of: {', '.join(sorted(intervals))}")
-        if operation not in operations:
-            raise ValueError(f"operation must be one of: {', '.join(sorted(operations))}")
+        self._validate_aggregation(interval, operation)
         plan = await self.explain_observation_query(
             station_query,
             metric,
@@ -406,14 +407,14 @@ class VizugyService:
             nonlocal chunks
             try:
                 result = await self._vra().aggregate_observations(
-                    plan.station,
-                    self._network_metric(plan.station, metric),
-                    data_type,
-                    chunk_start,
-                    chunk_end,
-                    interval,
-                    operation,
-                    plan.data_ext,
+                    station=plan.station,
+                    metric_name=self._network_metric(plan.station, metric),
+                    data_type_name=data_type,
+                    start=chunk_start,
+                    end=chunk_end,
+                    interval=interval,
+                    operation=operation,
+                    data_ext=plan.data_ext,
                 )
                 chunks += 1
                 return result
@@ -468,9 +469,9 @@ class VizugyService:
         if data_ext is not None and depth_cm is not None:
             raise ValueError("specify either data_ext or depth_cm, not both")
         if depth_cm is not None:
-            if metric["KodAZ"] not in {299, 303}:
+            if metric["KodAZ"] not in SOIL_METRIC_CODES:
                 raise ValueError("depth_cm is only defined for soil moisture and soil temperature")
-            if depth_cm not in {10, 20, 30, 45, 60, 75}:
+            if depth_cm not in SOIL_DEPTHS_CM:
                 raise ValueError("depth_cm must be one of: 10, 20, 30, 45, 60, 75")
             return depth_cm, {"depth_cm": depth_cm}
         return data_ext, {}
@@ -487,16 +488,13 @@ class VizugyService:
         operation: str = "avg",
     ) -> SoilDepthComparison:
         start, end = self._bounds(start, end)
-        depths = depths_cm or [10, 20, 30, 45, 60, 75]
+        depths = list(SOIL_DEPTHS_CM) if depths_cm is None else depths_cm
         if not depths or len(depths) != len(set(depths)):
             raise ValueError("depths_cm must contain unique depths")
-        invalid = sorted(set(depths) - {10, 20, 30, 45, 60, 75})
+        invalid = sorted(set(depths) - set(SOIL_DEPTHS_CM))
         if invalid:
             raise ValueError("depths_cm must use: 10, 20, 30, 45, 60, 75")
-        if interval not in {"daily", "tenday", "monthly", "yearly"}:
-            raise ValueError("invalid aggregation interval")
-        if operation not in {"min", "max", "avg", "sum", "cnt", "mean", "cntday"}:
-            raise ValueError("invalid aggregation operation")
+        self._validate_aggregation(interval, operation)
         duration_days = (end - start).total_seconds() / 86400
         max_buckets = {
             "daily": duration_days + 2,
@@ -510,7 +508,14 @@ class VizugyService:
             )
         station = await self.resolve_station(station_query)
         by_depth, metric_item = await self._vra().aggregate_depths(
-            station, metric, data_type, start, end, depths, interval, operation
+            station=station,
+            metric_name=metric,
+            data_type_name=data_type,
+            start=start,
+            end=end,
+            depths_cm=depths,
+            interval=interval,
+            operation=operation,
         )
         all_items = [item for items in by_depth.values() for item in items]
         provenance = all_items[0].provenance if all_items else station.provenance
@@ -557,3 +562,12 @@ class VizugyService:
             provenance=provenance,
             warnings=warnings,
         )
+
+    @staticmethod
+    def _validate_aggregation(interval: str, operation: str) -> None:
+        if interval not in AGGREGATION_INTERVALS:
+            choices = ", ".join(sorted(AGGREGATION_INTERVALS))
+            raise ValueError(f"interval must be one of: {choices}")
+        if operation not in AGGREGATION_OPERATIONS:
+            choices = ", ".join(sorted(AGGREGATION_OPERATIONS))
+            raise ValueError(f"operation must be one of: {choices}")

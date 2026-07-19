@@ -181,3 +181,18 @@ async def test_compare_soil_depths_reports_missing_requested_depth() -> None:
     assert result.series[1].items == []
     assert "20" in result.warnings[0]
     assert result.aggregation["performed_by"] == "upstream"
+
+
+@pytest.mark.asyncio
+async def test_compare_soil_depths_rejects_explicit_empty_depths() -> None:
+    app, vra = service()
+
+    with pytest.raises(ValueError, match="unique depths"):
+        await app.compare_soil_depths(
+            "surface:2046",
+            datetime(2026, 7, 1, tzinfo=UTC),
+            datetime(2026, 7, 19, tzinfo=UTC),
+            [],
+        )
+
+    vra.aggregate_depths.assert_not_called()

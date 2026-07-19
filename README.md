@@ -301,6 +301,9 @@ compare upstream daily averages across the six verified sensor depths:
 vizugy stations nearest 46.91 19.69 \
   --network precipitation --metric soil-moisture
 
+vizugy observations coverage precip:6994 \
+  --metric soil-moisture --data-type operational
+
 vizugy observations compare-depths precip:6994 \
   --start 2026-07-01T00:00:00Z \
   --end 2026-07-19T00:00:00Z

@@ -119,6 +119,26 @@ async def test_unknown_station_network_is_rejected_before_request() -> None:
 
 
 @pytest.mark.asyncio
+async def test_metric_filter_does_not_send_empty_station_list_upstream() -> None:
+    provider, requests = provider_with(
+        {
+            "/Vra/InternetVmo/14/true": [],
+            "/Base/AdatFajta": [
+                {**metric_payload(), "KodAZ": 299, "Nev": "Talajnedvesség", "Mertekegyseg": "%"}
+            ],
+            "/Base/AdatTipus": [data_type_payload()],
+        }
+    )
+    try:
+        stations = await provider.stations_with_metric("precipitation", "soil-moisture")
+    finally:
+        await provider.close()
+
+    assert stations == []
+    assert not any(request.url.path.endswith("DataCatalogMinMax") for request in requests)
+
+
+@pytest.mark.asyncio
 async def test_observations_send_filter_and_map_compact_values() -> None:
     provider, requests = provider_with(
         {
