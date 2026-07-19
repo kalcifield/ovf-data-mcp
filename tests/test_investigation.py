@@ -41,7 +41,7 @@ def service() -> tuple[VizugyService, AsyncMock]:
 
 
 @pytest.mark.asyncio
-async def test_explain_resolves_codes_without_fetching_values():
+async def test_explain_resolves_codes_without_fetching_values() -> None:
     app, vra = service()
     plan = await app.explain_observation_query(
         "Szolnok",
@@ -57,7 +57,7 @@ async def test_explain_resolves_codes_without_fetching_values():
 
 
 @pytest.mark.asyncio
-async def test_oversized_raw_query_is_rejected_before_fetch():
+async def test_oversized_raw_query_is_rejected_before_fetch() -> None:
     app, vra = service()
     with pytest.raises(ValueError, match="exceeds 7 days"):
         await app.get_observations(
@@ -71,7 +71,7 @@ async def test_oversized_raw_query_is_rejected_before_fetch():
 
 
 @pytest.mark.asyncio
-async def test_aggregate_returns_compact_points_and_envelope_provenance():
+async def test_aggregate_returns_compact_points_and_envelope_provenance() -> None:
     app, vra = service()
     provenance = station().provenance
     vra.aggregate_observations.return_value = [

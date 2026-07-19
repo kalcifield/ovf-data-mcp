@@ -373,8 +373,15 @@ cd ovf-data-mcp
 uv sync --extra test
 uv run ruff format --check src tests
 uv run ruff check src tests
-uv run ty check src tests
+uv run mypy src tests
 uv run pytest -q
+```
+
+VRAQuery wire models are generated from the pinned OpenAPI document. Regenerate them
+after intentionally updating that document:
+
+```bash
+scripts/generate-vra-models
 ```
 
 Design decisions, verified upstream behavior, and unresolved questions are documented

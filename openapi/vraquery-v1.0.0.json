@@ -1,0 +1,2913 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "VRAQuery API",
+    "description": "Operativ információkat kezelő szervíz",
+    "version": "v1.0.0"
+  },
+  "servers": [
+    {
+      "url": "/vraquery"
+    }
+  ],
+  "paths": {
+    "/Base/MeresIP": {
+      "post": {
+        "tags": [
+          "Base"
+        ],
+        "summary": "Reggeli és esti mérési időpontok, ha csak egy időpontra akarjuk szűrni, akkor minden (törzsszám - reggel) párból érvényesség szerint az elsőt kell figyelembe venni",
+        "parameters": [
+          {
+            "name": "validFrom",
+            "in": "query",
+            "description": "A legyűjtésben szereplő elemek érvényességének legkorábbi kezdő ideje",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "access token",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Elvárt törzsszámok",
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            },
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MeresIP"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MeresIP"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MeresIP"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/Base/DataCatalogMinMax": {
+      "post": {
+        "tags": [
+          "Base"
+        ],
+        "summary": "A rendelkezésre álló adatok legkorábbi és legkésőbbi időpontjai",
+        "parameters": [
+          {
+            "name": "hafKod",
+            "in": "query",
+            "description": "Lehet szűrni adatfajtára ezzel a paraméterrel, ha 0 akkor minden hafkódot vissza fog adni",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "atKod",
+            "in": "query",
+            "description": "Lehet szűrni adattípusra ezzel a paraméterrel, ha 0 akkor minden atkódot vissza fog adni",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "access token",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Elvárt törzsszámok",
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            },
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DataCatalogMinMax"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DataCatalogMinMax"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DataCatalogMinMax"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/Base/AdatKiseroKod/{csoport}": {
+      "get": {
+        "tags": [
+          "Base"
+        ],
+        "summary": "Az adatkisérő kódok listája, pl jégkód, csapadékkód",
+        "parameters": [
+          {
+            "name": "csoport",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "access token",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdatKiseroKod"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdatKiseroKod"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdatKiseroKod"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/Base/AdatFajta": {
+      "get": {
+        "tags": [
+          "Base"
+        ],
+        "summary": "Adatfajták listája",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "access token",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdatFajta"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdatFajta"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdatFajta"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/Base/AdatTipus": {
+      "get": {
+        "tags": [
+          "Base"
+        ],
+        "summary": "Adattípusok listája",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "access token",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdatTipus"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdatTipus"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdatTipus"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/Base/MezoMinosites": {
+      "get": {
+        "tags": [
+          "Base"
+        ],
+        "summary": "Mezőminősítő kódok listája",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "access token",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MezoMinosites"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MezoMinosites"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MezoMinosites"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/Base/AdatMinosites": {
+      "get": {
+        "tags": [
+          "Base"
+        ],
+        "summary": "Adatminősítő kódok listája",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "access token",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdatMinosites"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdatMinosites"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdatMinosites"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/Forecast/ForecastStation/{torzsszam}/{hafkod}/{etipuskod}": {
+      "get": {
+        "tags": [
+          "Forecast"
+        ],
+        "summary": "Egy adott állomásra kérdezhető le az OVF által kiadott utolsó előrejelzett idősor",
+        "parameters": [
+          {
+            "name": "torzsszam",
+            "in": "path",
+            "description": "Lekérdezendő felszíni állomás törzsszáma",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "hafkod",
+            "in": "path",
+            "description": "Adatfajta kódja pl 68: felszíni vízállás, 87 felszíni vízhozam",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "etipuskod",
+            "in": "path",
+            "description": "Előrejelzés típusa, 1=folyamatos előrejelzés, 2=előrejelzés középértékkel,3=előrejelzés intervallummal",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "access token",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ForecastItem"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ForecastItem"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ForecastItem"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/IS/IsShort": {
+      "post": {
+        "tags": [
+          "IS"
+        ],
+        "summary": "Jégidősor lekérdezése egy objektumra, rövid tartalommal",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "access token",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "",
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/RequestIS"
+                }
+              }
+            },
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/RequestIS"
+                }
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/RequestIS"
+                }
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/RequestIS"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ISShortResponse"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ISShortResponse"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ISShortResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/IS/IsShortList": {
+      "post": {
+        "tags": [
+          "IS"
+        ],
+        "summary": "Azonos adatfajta és adattípus esetén több állomás egyszeri lekérdezése",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "access token",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "",
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestISList"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestISList"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestISList"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestISList"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ISShortResponse"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ISShortResponse"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ISShortResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/Login/Authenticate": {
+      "post": {
+        "tags": [
+          "Login"
+        ],
+        "summary": "Bejelentkezés hitelesítése",
+        "requestBody": {
+          "description": "",
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginUser"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginUser"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginUser"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginUser"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/Login/Refresh": {
+      "post": {
+        "tags": [
+          "Login"
+        ],
+        "summary": "A token frissítése",
+        "requestBody": {
+          "description": "",
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginUser"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginUser"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginUser"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginUser"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "boolean"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/Login/Test": {
+      "get": {
+        "tags": [
+          "Login"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/TS/TsShort": {
+      "post": {
+        "tags": [
+          "TS"
+        ],
+        "summary": "Rövid formátumú idősor lekérdezés",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "access token",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "",
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/RequestTS"
+                }
+              }
+            },
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/RequestTS"
+                }
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/RequestTS"
+                }
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/RequestTS"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TSShortResponse"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TSShortResponse"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TSShortResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/TS/TsShortList": {
+      "post": {
+        "tags": [
+          "TS"
+        ],
+        "summary": "Azonos adatfajta és adattípus esetén több állomás egyszeri lekérdezése",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "access token",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "",
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestTSList"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestTSList"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestTSList"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestTSList"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TSShortResponse"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TSShortResponse"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TSShortResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/TS/TsLong": {
+      "post": {
+        "tags": [
+          "TS"
+        ],
+        "summary": "Minősító kódokkal kiegészített formátumú idősor lekérdezés",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "access token",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "",
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/RequestTS"
+                }
+              }
+            },
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/RequestTS"
+                }
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/RequestTS"
+                }
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/RequestTS"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TSLongResponse"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TSLongResponse"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TSLongResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/TS/TsLongList": {
+      "post": {
+        "tags": [
+          "TS"
+        ],
+        "summary": "Azonos adatfajta és adattípus esetén több állomás egyszeri lekérdezése minősítő kódokkal kiegészített formátumban",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "access token",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "",
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestTSList"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestTSList"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestTSList"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestTSList"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TSLongResponse"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TSLongResponse"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TSLongResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/TS/TSListFilterShort": {
+      "post": {
+        "tags": [
+          "TS"
+        ],
+        "summary": "Több állomás több filterrel történő lekérdezése",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "access token",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "",
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestTSListFilter"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestTSListFilter"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestTSListFilter"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestTSListFilter"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TSShortItemDTResponseTSListFilter"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TSShortItemDTResponseTSListFilter"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TSShortItemDTResponseTSListFilter"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/TS/TSListFilterLong": {
+      "post": {
+        "tags": [
+          "TS"
+        ],
+        "summary": "Több állomás több filterrel történő lekérdezése, az eredmény minősítő kódokkal bővítve",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "access token",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "",
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestTSListFilter"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestTSListFilter"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestTSListFilter"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestTSListFilter"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TSLongItemDTResponseTSListFilter"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TSLongItemDTResponseTSListFilter"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TSLongItemDTResponseTSListFilter"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/TS/TSListFilterFull": {
+      "post": {
+        "tags": [
+          "TS"
+        ],
+        "summary": "Több állomás több filterrel történő lekérdezése, az eredmény minden adattal bővítve",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "access token",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "",
+          "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestTSListFilter"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestTSListFilter"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestTSListFilter"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestTSListFilter"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TSFullItemDTResponseTSListFilter"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TSFullItemDTResponseTSListFilter"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TSFullItemDTResponseTSListFilter"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/Vra/Vmo/{vmotipuskod}/{onlyActive}": {
+      "get": {
+        "tags": [
+          "Vra"
+        ],
+        "summary": "Vízrajzi megfigyelési objektumok listája",
+        "parameters": [
+          {
+            "name": "vmotipuskod",
+            "in": "path",
+            "description": "Objektum típus szűrő",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "onlyActive",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "access token",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Vmo"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Vmo"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Vmo"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    },
+    "/Vra/InternetVmo/{vmotipuskod}/{onlyActive}": {
+      "get": {
+        "tags": [
+          "Vra"
+        ],
+        "summary": "Interneten megjelenítendő Vízrajzi megfigyelési objektumok listája",
+        "parameters": [
+          {
+            "name": "vmotipuskod",
+            "in": "path",
+            "description": "Objektum típus szűrő",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "onlyActive",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "access token",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InternetVMO"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InternetVMO"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InternetVMO"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "Bearer": [ ]
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AdatFajta": {
+        "type": "object",
+        "properties": {
+          "Mertekegyseg": {
+            "type": "string",
+            "description": "Adatfajta mértékegység",
+            "nullable": true
+          },
+          "Minimum": {
+            "type": "number",
+            "description": "Legkisbb elfogadható érték",
+            "format": "double"
+          },
+          "Maximum": {
+            "type": "number",
+            "description": "Legnagyobb elfogadható érték",
+            "format": "double"
+          },
+          "Pontossag": {
+            "type": "integer",
+            "description": "Adatfajta tizedesjegyeinek száma",
+            "format": "int32"
+          },
+          "Nev": {
+            "type": "string",
+            "description": "A kód neve",
+            "nullable": true
+          },
+          "KodSorszam": {
+            "type": "integer",
+            "description": "Megjelenítésben sorrendje",
+            "format": "int32"
+          },
+          "KodAZ": {
+            "type": "integer",
+            "description": "A kód egyedi azonosítója",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdatKiseroKod": {
+        "type": "object",
+        "properties": {
+          "RovidNev": {
+            "type": "string",
+            "description": "A kód rövid megnevezése",
+            "nullable": true
+          },
+          "Jel": {
+            "type": "string",
+            "description": "A kód jele",
+            "nullable": true
+          },
+          "Csoport": {
+            "type": "string",
+            "description": "A kód csoportja\r\nCSAPJELKOD, DEFAULT, GAZLOHELYKOD, GAZLOINFOKOD, HOKOD, JEGKOD, NEDVESLEGHOMERESKOD,ZSILIPKOD",
+            "nullable": true
+          },
+          "Ervenyes": {
+            "type": "boolean",
+            "description": "Igaz, ha a kód használatban van, hamis, ha már nem kiosztható"
+          },
+          "Nev": {
+            "type": "string",
+            "description": "A kód neve",
+            "nullable": true
+          },
+          "KodSorszam": {
+            "type": "integer",
+            "description": "Megjelenítésben sorrendje",
+            "format": "int32"
+          },
+          "KodAZ": {
+            "type": "integer",
+            "description": "A kód egyedi azonosítója",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdatMinosites": {
+        "type": "object",
+        "properties": {
+          "KodRov": {
+            "type": "string",
+            "nullable": true
+          },
+          "Default": {
+            "type": "boolean"
+          },
+          "Nev": {
+            "type": "string",
+            "description": "A kód neve",
+            "nullable": true
+          },
+          "KodSorszam": {
+            "type": "integer",
+            "description": "Megjelenítésben sorrendje",
+            "format": "int32"
+          },
+          "KodAZ": {
+            "type": "integer",
+            "description": "A kód egyedi azonosítója",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdatTipus": {
+        "type": "object",
+        "properties": {
+          "KodCsoportKod": {
+            "type": "integer",
+            "description": "Adattípus csoprtja",
+            "format": "int32"
+          },
+          "Ervenyes": {
+            "type": "boolean",
+            "description": "Az aktuális időponban használható-e"
+          },
+          "Nev": {
+            "type": "string",
+            "description": "A kód neve",
+            "nullable": true
+          },
+          "KodSorszam": {
+            "type": "integer",
+            "description": "Megjelenítésben sorrendje",
+            "format": "int32"
+          },
+          "KodAZ": {
+            "type": "integer",
+            "description": "A kód egyedi azonosítója",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AggregateFilter": {
+        "type": "object",
+        "properties": {
+          "RangeType": {
+            "$ref": "#/components/schemas/AggregateRangeTypeEnum"
+          },
+          "AggregateType": {
+            "$ref": "#/components/schemas/AggregateTypeEnum"
+          },
+          "AggregateRangePosition": {
+            "$ref": "#/components/schemas/AggregateRangePositionEnum"
+          },
+          "MaxNullDayCount": {
+            "type": "integer",
+            "description": "Az időszakban megengedett maximális üres nap, null esetén bármennyi lehet",
+            "format": "int32",
+            "nullable": true
+          },
+          "MaxNullDayRangeLengh": {
+            "type": "integer",
+            "description": "Az időszakban megengedett olyan szakasz hossza napban, ahol egymás utáni napon nincs adat. Null esetén bármennyi lehet.",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AggregateRangePositionEnum": {
+        "enum": [
+          "none",
+          "minmaxpos"
+        ],
+        "type": "string",
+        "description": "Aggregáció kiegészítő információja\r\nnone = nincs; \r\nminmaxpos = Csak minimum és maximum-nál lesz használható. A min max időpontját berakja a DataExt-be"
+      },
+      "AggregateRangeTypeEnum": {
+        "enum": [
+          "none",
+          "daily",
+          "tenday",
+          "monthly",
+          "yearly"
+        ],
+        "type": "string",
+        "description": "Aggregációs időtartam\r\nnone = nincs; \r\ndaily = napi; \r\ntenday = dekád; \r\nmonthly = havi; \r\nyearly = éve;"
+      },
+      "AggregateTypeEnum": {
+        "enum": [
+          "min",
+          "max",
+          "avg",
+          "sum",
+          "cnt",
+          "mean",
+          "cntday"
+        ],
+        "type": "string",
+        "description": "Aggregáció típusa\r\nmin = minimum; \r\nmax = maximum; \r\navg = matematikai átlag; \r\nsum = összeg; \r\ncnt = darab; \r\nmean = közép érték, idővel súlyozva; \r\ncntday = értékes napok száma;"
+      },
+      "DailyFilter": {
+        "type": "object",
+        "properties": {
+          "CenterMin": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Elvárt időpont 0 órától percben lehet több idő is pl reggel és este",
+            "nullable": true
+          },
+          "RangeMin": {
+            "type": "integer",
+            "description": "Tűréshatár +- percben",
+            "format": "int32"
+          },
+          "DailyRangeFind": {
+            "$ref": "#/components/schemas/DailyRangeFindEnum"
+          },
+          "NearestInterpolRangeMin": {
+            "type": "integer",
+            "description": "Legközelebbi pótlással keresésnél az interpolációs intervallum +- percben",
+            "format": "int32"
+          },
+          "InterpolatingMode": {
+            "$ref": "#/components/schemas/InterpolatingModeEnum"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Napon belüli szűrő időpont alapján"
+      },
+      "DailyRangeFindEnum": {
+        "enum": [
+          "none",
+          "exacttime",
+          "nearestime",
+          "exactinterpol",
+          "nearestinterpol"
+        ],
+        "type": "string",
+        "description": "none = A megadott időpont és a tűréshatárt figyelembe véve minden adat \r\nexacttime= A megadott időponttal egyező adat \r\nnearestime = A megadott időponthoz legközelebbi adat a türéshatáron belül  \r\nexactinterpol =A megadott időpontra interpolált adat. Az interpoláció lineáris a két alap érték csak a megadott tűréshatáron belül fogadható el.\r\nnearestinterpol = A megadott időponthoz legközelebbi adat a türéshatáron belül, ha nincs lineárisan interpolál a megadott tűréshatáron belül."
+      },
+      "DataCatalogMinMax": {
+        "type": "object",
+        "properties": {
+          "HAFKod": {
+            "type": "integer",
+            "description": "Keresett adatfajta",
+            "format": "int32"
+          },
+          "ATKod": {
+            "type": "integer",
+            "description": "Keresett adattípus",
+            "format": "int32"
+          },
+          "DataExt": {
+            "type": "integer",
+            "description": "Kiegészítő adat",
+            "format": "int32"
+          },
+          "Torzsszam": {
+            "type": "integer",
+            "description": "VMO törzsszáma",
+            "format": "int32"
+          },
+          "UTCTimeMin": {
+            "type": "string",
+            "description": "A VMO legkorábbi adatának időpontja UTC time-ban, az adoott hafkod és atkod-ra",
+            "format": "date-time"
+          },
+          "UTCTimeMax": {
+            "type": "string",
+            "description": "A VMO legkésőbbi adatának időpontja UTC time-ban, az adoott hafkod és atkod-ra",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A rendelkezésre álló legkorábbi és legkésőbbi adat"
+      },
+      "ForecastItem": {
+        "type": "object",
+        "properties": {
+          "UTCTime": {
+            "type": "string",
+            "description": "Az előrejelzett adat időpontja UTC-ben perc pontossággal",
+            "format": "date-time"
+          },
+          "UTCTime2": {
+            "type": "string",
+            "description": "Az előrejelzés második időpontja UTC-ben perc pontossággal, intervallumos előrejelzésnél. Lehet NULL értékű nem intervallumos előrejezés esetén.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "Adat": {
+            "type": "number",
+            "description": "Az előrejelzett adat (vízállás/vízhozam) értéke",
+            "format": "double"
+          },
+          "Adat2": {
+            "type": "number",
+            "description": "Az előrejelzett második adat (vízállás/vízhozam) értéke, intervallumos előrejelzés esetén. Lehet NULL értékű nem intervallumos előrejezés esetén.",
+            "format": "double",
+            "nullable": true
+          },
+          "AdatKonf": {
+            "type": "number",
+            "description": "Az előrejelzési konfidencia sáv értéke",
+            "format": "double",
+            "nullable": true
+          },
+          "AdatMax": {
+            "type": "boolean",
+            "description": "igaz, ha ez tetőző vízállás vagy maximum vízhozam az előrejelzésben"
+          },
+          "DPComment": {
+            "type": "string",
+            "description": "Az adat (sor) értékéhez fűzött felhasználói feljegyzés.  Adatcsomagon keresztül kap értéket.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Előrejelzett adat"
+      },
+      "ISShortItemDT": {
+        "type": "object",
+        "properties": {
+          "Fkm": {
+            "type": "number",
+            "description": "A szelvényszám, ahol a szakaszon belül a jégjelenséget megfigyelték – a jégadatok a szelvénytől lefelé érvényesek (Fkm)",
+            "format": "double"
+          },
+          "UTCTime": {
+            "type": "string",
+            "description": "Jégmegfigyelés időpontja",
+            "format": "date-time"
+          },
+          "JegKod1": {
+            "type": "integer",
+            "description": "Észlelt jégjelenség kódja (1). AKGroup = ’JEGKOD’",
+            "format": "int32",
+            "nullable": true
+          },
+          "JegKod2": {
+            "type": "integer",
+            "description": "Észlelt jégjelenség kódja (2). AKGroup = ’JEGKOD’",
+            "format": "int32",
+            "nullable": true
+          },
+          "JegV": {
+            "type": "integer",
+            "description": "Az észlelt jég vastagsága (cm)",
+            "format": "int32",
+            "nullable": true
+          },
+          "HoJegen": {
+            "type": "integer",
+            "description": "A jégen észlelt hó vastagsága (cm)",
+            "format": "int32",
+            "nullable": true
+          },
+          "HoKod": {
+            "type": "integer",
+            "description": "A jégen észlelt hójelenség kódja. AKGroup = ’HOKOD’",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ISShortResponse": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "integer",
+            "description": "Kérésben átadott lista elem azaonosító",
+            "format": "int32"
+          },
+          "IsItemList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ISShortItemDT"
+            },
+            "description": "Idősor elemek kérése elemenként",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "InternetVMO": {
+        "type": "object",
+        "properties": {
+          "Tsz": {
+            "type": "integer",
+            "description": "Objektum vízrajzi törzsszáma",
+            "format": "int32"
+          },
+          "Nev": {
+            "type": "string",
+            "description": "Objektum neve",
+            "nullable": true
+          },
+          "Vizig": {
+            "type": "integer",
+            "description": "Tulajdonos szervezet (vizig) kódja",
+            "format": "int32"
+          },
+          "EOVx": {
+            "type": "number",
+            "description": "Objektum földrajzi EOV koordinátája",
+            "format": "double",
+            "nullable": true
+          },
+          "EOVy": {
+            "type": "number",
+            "description": "Objektum földrajzi EOV koordinátája",
+            "format": "double",
+            "nullable": true
+          },
+          "Uzem": {
+            "type": "boolean",
+            "description": "A lekérdezés időpontjában az állomás üzemel-e"
+          },
+          "Lat": {
+            "type": "number",
+            "description": "Objektum földrajzi koordinátája latitude",
+            "format": "double",
+            "nullable": true
+          },
+          "Lon": {
+            "type": "number",
+            "description": "Objektum földrajzi koordinátája longitude",
+            "format": "double",
+            "nullable": true
+          },
+          "Aft": {
+            "type": "integer",
+            "description": " Adatforgalmazás típusa\r\n KodAZ\tKodSorszam\tNev\r\n4489 ismeretlen\r\n4490 észlelt\r\n4491 regisztrált\r\n4492 távmért\r\n4584 nincs",
+            "format": "int32"
+          },
+          "Mdr": {
+            "type": "string",
+            "description": "Felszíni állomás kapcsolódó meder",
+            "format": "uuid",
+            "nullable": true
+          },
+          "Fkm": {
+            "type": "number",
+            "description": "Felszíni állomás szelvényszáma",
+            "format": "double",
+            "nullable": true
+          },
+          "LKV": {
+            "type": "integer",
+            "description": "Felszíni állomás esetén legkisebb mért vízállás",
+            "format": "int32",
+            "nullable": true
+          },
+          "LNV": {
+            "type": "integer",
+            "description": "Felszíni állomás esetén legnagyobb mért vízállás",
+            "format": "int32",
+            "nullable": true
+          },
+          "KF1": {
+            "type": "integer",
+            "description": "Felszíni állomás esetén elsőfok szintje",
+            "format": "int32",
+            "nullable": true
+          },
+          "KF2": {
+            "type": "integer",
+            "description": "Felszíni állomás esetén másodfok szintje",
+            "format": "int32",
+            "nullable": true
+          },
+          "KF3": {
+            "type": "integer",
+            "description": "Felszíni állomás esetén harmadfok szintje",
+            "format": "int32",
+            "nullable": true
+          },
+          "Npt": {
+            "type": "number",
+            "description": "Nullpont: felszíni állomás esetén a mérce nullpontja, felszínközeli és felszín alatti esetén a kútperem magassága",
+            "format": "double",
+            "nullable": true
+          },
+          "MdrNev": {
+            "type": "string",
+            "description": "Felszíni állomás kapcsolódó meder megnevezése.",
+            "nullable": true
+          },
+          "Telepules": {
+            "type": "string",
+            "description": "Kapcsolódó település megnevése",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Vízrajzi megfigyelő objektum"
+      },
+      "InterpolatingModeEnum": {
+        "enum": [
+          "linear",
+          "spline"
+        ],
+        "type": "string",
+        "description": "interpoláció típusa"
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "Token": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "LoginUser": {
+        "type": "object",
+        "properties": {
+          "Username": {
+            "type": "string",
+            "nullable": true
+          },
+          "Password": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MeresIP": {
+        "type": "object",
+        "properties": {
+          "Torzsszam": {
+            "type": "integer",
+            "description": "Állomás törzsszáma",
+            "format": "int32"
+          },
+          "MeresPerc": {
+            "type": "integer",
+            "description": "Mérési időpontja 0 órától percben helyi idő szerint",
+            "format": "int32"
+          },
+          "IdopontUTC": {
+            "type": "string",
+            "description": "Az adat érvényességének kezdete",
+            "format": "date-time"
+          },
+          "Reggel": {
+            "type": "boolean",
+            "description": "Reggeli, vagy esti adat időpontja-e a rekord"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Reggeli és eseti mérési időpontok"
+      },
+      "MezoMinosites": {
+        "type": "object",
+        "properties": {
+          "Jel": {
+            "type": "string",
+            "description": "A minősítés jele",
+            "nullable": true
+          },
+          "Csoport": {
+            "type": "integer",
+            "description": "Minősítés csoportosítása",
+            "format": "int32"
+          },
+          "Default": {
+            "type": "boolean",
+            "description": "Alpértelmezett minősítés"
+          },
+          "Nev": {
+            "type": "string",
+            "description": "A kód neve",
+            "nullable": true
+          },
+          "KodSorszam": {
+            "type": "integer",
+            "description": "Megjelenítésben sorrendje",
+            "format": "int32"
+          },
+          "KodAZ": {
+            "type": "integer",
+            "description": "A kód egyedi azonosítója",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RequestIS": {
+        "type": "object",
+        "properties": {
+          "Torzsszam": {
+            "type": "integer",
+            "description": "Keresett VMO törzsszáma, felszíni állomás, vagy jégjelentő szakasz",
+            "format": "int32"
+          },
+          "AdatTipusKod": {
+            "type": "integer",
+            "description": "ATKod, adattípus kód",
+            "format": "int32"
+          },
+          "StartTime": {
+            "type": "string",
+            "description": "Legyűjtendő adatok kezdete",
+            "format": "date-time"
+          },
+          "EndTime": {
+            "type": "string",
+            "description": "Legyűjtendő adatok vége",
+            "format": "date-time"
+          },
+          "DailyFilters": {
+            "$ref": "#/components/schemas/DailyFilter"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RequestISList": {
+        "type": "object",
+        "properties": {
+          "TorzsszamList": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Keresett VMO törzsszámalista, felszini állomás vagy jégjelentő szakasz",
+            "nullable": true
+          },
+          "AdatTipusKod": {
+            "type": "integer",
+            "description": "ATKod, adattípus kód",
+            "format": "int32"
+          },
+          "StartTime": {
+            "type": "string",
+            "description": "Legyűjtendő adatok kezdete",
+            "format": "date-time"
+          },
+          "EndTime": {
+            "type": "string",
+            "description": "Legyűjtendő adatok vége",
+            "format": "date-time"
+          },
+          "DailyFilters": {
+            "$ref": "#/components/schemas/DailyFilter"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RequestTS": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "integer",
+            "description": "A kérésen belüli sorszám a responseban erre való hivatkozással jön vissza adat",
+            "format": "int32"
+          },
+          "Torzsszam": {
+            "type": "integer",
+            "description": "Keresett VMO törzsszáma",
+            "format": "int32"
+          },
+          "AdatFajtaKod": {
+            "type": "integer",
+            "description": "HAFKOD, adatfajtakód",
+            "format": "int32"
+          },
+          "AdatTipusKod": {
+            "type": "integer",
+            "description": "ATKod, adattípus kód",
+            "format": "int32"
+          },
+          "StartTime": {
+            "type": "string",
+            "description": "Legyűjtendő adatok kezdete",
+            "format": "date-time"
+          },
+          "EndTime": {
+            "type": "string",
+            "description": "Legyűjtendő adatok vége",
+            "format": "date-time"
+          },
+          "DataExtFilter": {
+            "type": "integer",
+            "description": "DataExt mezűben szereplő érték null esetén nincs szűrés",
+            "format": "int32",
+            "nullable": true
+          },
+          "DailyFilters": {
+            "$ref": "#/components/schemas/DailyFilter"
+          },
+          "AggregateFilters": {
+            "$ref": "#/components/schemas/AggregateFilter"
+          },
+          "ValueFilter": {
+            "$ref": "#/components/schemas/ValueFilterEnum"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RequestTSList": {
+        "type": "object",
+        "properties": {
+          "TorzsszamList": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Keresett VMO törzsszámalista",
+            "nullable": true
+          },
+          "AdatFajtaKod": {
+            "type": "integer",
+            "description": "HAFKOD, adatfajtakód",
+            "format": "int32"
+          },
+          "AdatTipusKod": {
+            "type": "integer",
+            "description": "ATKod, adattípus kód",
+            "format": "int32"
+          },
+          "StartTime": {
+            "type": "string",
+            "description": "Legyűjtendő adatok kezdete",
+            "format": "date-time"
+          },
+          "EndTime": {
+            "type": "string",
+            "description": "Legyűjtendő adatok vége",
+            "format": "date-time"
+          },
+          "DataExtFilter": {
+            "type": "integer",
+            "description": "DataExt mezűben szereplő érték null esetén nincs szűrés",
+            "format": "int32",
+            "nullable": true
+          },
+          "DailyFilters": {
+            "$ref": "#/components/schemas/DailyFilter"
+          },
+          "AggregateFilters": {
+            "$ref": "#/components/schemas/AggregateFilter"
+          },
+          "ValueFilter": {
+            "$ref": "#/components/schemas/ValueFilterEnum"
+          },
+          "AMKodFilter": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Az eredmény halmazban csak azok a sorok lesznek figyelembevéve, melyek adatminősítő kódja a listában szerepel, ha nincs elem a listában akkor az összes, csak long lekérdezéssel együtt szűr",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RequestTSListFilter": {
+        "type": "object",
+        "properties": {
+          "TorzsszamList": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Az adott törzsszámlistára minden fileterre lehajtja a lekérdezést",
+            "nullable": true
+          },
+          "Filters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TSFilter"
+            },
+            "description": "Szűrési feltételek listája",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TSFilter": {
+        "type": "object",
+        "properties": {
+          "FilterID": {
+            "type": "integer",
+            "description": "A kérés egyedi azonosítója, egy requesten belül egyedinek kell lenni",
+            "format": "int32"
+          },
+          "AdatFajtaKod": {
+            "type": "integer",
+            "description": "HAFKOD, adatfajtakód",
+            "format": "int32"
+          },
+          "AdatTipusKod": {
+            "type": "integer",
+            "description": "ATKod, adattípus kód",
+            "format": "int32"
+          },
+          "StartTime": {
+            "type": "string",
+            "description": "Legyűjtendő adatok kezdete",
+            "format": "date-time"
+          },
+          "EndTime": {
+            "type": "string",
+            "description": "Legyűjtendő adatok vége",
+            "format": "date-time"
+          },
+          "DataExtFilter": {
+            "type": "integer",
+            "description": "DataExt mezűben szereplő érték null esetén nincs szűrés",
+            "format": "int32",
+            "nullable": true
+          },
+          "DailyFilters": {
+            "$ref": "#/components/schemas/DailyFilter"
+          },
+          "AggregateFilters": {
+            "$ref": "#/components/schemas/AggregateFilter"
+          },
+          "ValueFilter": {
+            "$ref": "#/components/schemas/ValueFilterEnum"
+          },
+          "AMKodFilter": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Az eredmény halmazban csak azok a sorok lesznek figyelembevéve, melyek adatminősítő kódja a listában szerepel, ha nincs elem a listában akkor az összes, csak long lekérdezéssel együtt szűr",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TSFullItemDT": {
+        "type": "object",
+        "properties": {
+          "AFKod": {
+            "type": "integer",
+            "description": "Adatforrás kódja",
+            "format": "int32"
+          },
+          "DPUserID": {
+            "type": "integer",
+            "description": "Felhasználó azonosítója",
+            "format": "int32",
+            "nullable": true
+          },
+          "DPTime": {
+            "type": "string",
+            "description": "Módosítás időpontja",
+            "format": "date-time"
+          },
+          "DPComment": {
+            "type": "string",
+            "description": "Megjegyzés",
+            "nullable": true
+          },
+          "tsID": {
+            "type": "integer",
+            "description": "Rekord azonosítója a tároló partíción belül",
+            "format": "int32"
+          },
+          "AKKod": {
+            "type": "integer",
+            "description": "Adatkisérőkód",
+            "format": "int32"
+          },
+          "MMKod": {
+            "type": "integer",
+            "description": "Mezőminősító kód",
+            "format": "int32"
+          },
+          "AMKod": {
+            "type": "integer",
+            "description": "Adatminősítő kód",
+            "format": "int32"
+          },
+          "UTCTime": {
+            "type": "string",
+            "description": "Adat időpontja UTC-ben",
+            "format": "date-time"
+          },
+          "Adat": {
+            "type": "number",
+            "description": "Adat értéke",
+            "format": "double",
+            "nullable": true
+          },
+          "DataExt": {
+            "type": "integer",
+            "description": "Kiegészítő adat",
+            "format": "int32",
+            "default": 0
+          }
+        },
+        "additionalProperties": false,
+        "description": "Minden adatot tartalmazó szerkezet"
+      },
+      "TSFullItemDTResponseTSListFilter": {
+        "type": "object",
+        "properties": {
+          "FilterID": {
+            "type": "integer",
+            "description": "A kérés egyedi azonosítója, egy requesten belül egyedinek kell lenni",
+            "format": "int32"
+          },
+          "FilteredResponse": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TSFullItemDTTSResponse"
+            },
+            "description": "A kéréshez tartozó eredmény halmazok",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Szűrt eredmény halmaz"
+      },
+      "TSFullItemDTTSResponse": {
+        "type": "object",
+        "properties": {
+          "Torzsszam": {
+            "type": "integer",
+            "description": "Az adott kérésen belül a törzsszám",
+            "format": "int32"
+          },
+          "TsItemList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TSFullItemDT"
+            },
+            "description": "Az adott kérésen belül a törzsszámhoz tartozó eredmény lista",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TSLongItemDT": {
+        "type": "object",
+        "properties": {
+          "AKKod": {
+            "type": "integer",
+            "description": "Adatkisérőkód",
+            "format": "int32"
+          },
+          "MMKod": {
+            "type": "integer",
+            "description": "Mezőminősító kód",
+            "format": "int32"
+          },
+          "AMKod": {
+            "type": "integer",
+            "description": "Adatminősítő kód",
+            "format": "int32"
+          },
+          "UTCTime": {
+            "type": "string",
+            "description": "Adat időpontja UTC-ben",
+            "format": "date-time"
+          },
+          "Adat": {
+            "type": "number",
+            "description": "Adat értéke",
+            "format": "double",
+            "nullable": true
+          },
+          "DataExt": {
+            "type": "integer",
+            "description": "Kiegészítő adat",
+            "format": "int32",
+            "default": 0
+          }
+        },
+        "additionalProperties": false,
+        "description": "Minősítő kódokat is tartalmazó idősor"
+      },
+      "TSLongItemDTResponseTSListFilter": {
+        "type": "object",
+        "properties": {
+          "FilterID": {
+            "type": "integer",
+            "description": "A kérés egyedi azonosítója, egy requesten belül egyedinek kell lenni",
+            "format": "int32"
+          },
+          "FilteredResponse": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TSLongItemDTTSResponse"
+            },
+            "description": "A kéréshez tartozó eredmény halmazok",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Szűrt eredmény halmaz"
+      },
+      "TSLongItemDTTSResponse": {
+        "type": "object",
+        "properties": {
+          "Torzsszam": {
+            "type": "integer",
+            "description": "Az adott kérésen belül a törzsszám",
+            "format": "int32"
+          },
+          "TsItemList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TSLongItemDT"
+            },
+            "description": "Az adott kérésen belül a törzsszámhoz tartozó eredmény lista",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TSLongResponse": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "integer",
+            "description": "Kérésben átadott lista elem azaonosító",
+            "format": "int32"
+          },
+          "TsItemList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TSLongItemDT"
+            },
+            "description": "Idősor elemek kérése elemenként",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Minősítő kódokat is tartalmazó eredményhalmaz"
+      },
+      "TSShortItemDT": {
+        "type": "object",
+        "properties": {
+          "UTCTime": {
+            "type": "string",
+            "description": "Adat időpontja UTC-ben",
+            "format": "date-time"
+          },
+          "Adat": {
+            "type": "number",
+            "description": "Adat értéke",
+            "format": "double",
+            "nullable": true
+          },
+          "DataExt": {
+            "type": "integer",
+            "description": "Kiegészítő adat",
+            "format": "int32",
+            "default": 0
+          }
+        },
+        "additionalProperties": false
+      },
+      "TSShortItemDTResponseTSListFilter": {
+        "type": "object",
+        "properties": {
+          "FilterID": {
+            "type": "integer",
+            "description": "A kérés egyedi azonosítója, egy requesten belül egyedinek kell lenni",
+            "format": "int32"
+          },
+          "FilteredResponse": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TSShortItemDTTSResponse"
+            },
+            "description": "A kéréshez tartozó eredmény halmazok",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Szűrt eredmény halmaz"
+      },
+      "TSShortItemDTTSResponse": {
+        "type": "object",
+        "properties": {
+          "Torzsszam": {
+            "type": "integer",
+            "description": "Az adott kérésen belül a törzsszám",
+            "format": "int32"
+          },
+          "TsItemList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TSShortItemDT"
+            },
+            "description": "Az adott kérésen belül a törzsszámhoz tartozó eredmény lista",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TSShortResponse": {
+        "type": "object",
+        "properties": {
+          "ItemId": {
+            "type": "integer",
+            "description": "Kérésben átadott lista elem azaonosító",
+            "format": "int32"
+          },
+          "TsItemList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TSShortItemDT"
+            },
+            "description": "Idősor elemek kérése elemenként",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ValueFilterEnum": {
+        "enum": [
+          "Relativ",
+          "Balti",
+          "Terep",
+          "UtolsoNullpont"
+        ],
+        "type": "string",
+        "description": "Állomások adatkonverziója szintek alapján\r\nRelativ = Eredeti érték a mérés, vagy leolvasás nullpontjához viszonyítottan.; \r\nBalti = Az egység méter a vízszint a mBf értékben;\r\nTerep = A mindenkori terepszinthez viszonyítottan. Csak kútnál értelmezett talajvíznél cm, rétegvíznél m egységben\r\nUtolsoNullpont = Az utolsó kútperem magassághoz viszonyítottan. Csak felszín alatti állomásoknál értelmezett"
+      },
+      "Vmo": {
+        "type": "object",
+        "properties": {
+          "Torzsszam": {
+            "type": "integer",
+            "description": "Objektum vízrajzi törzsszáma",
+            "format": "int32"
+          },
+          "Nev": {
+            "type": "string",
+            "description": "Objektum neve",
+            "nullable": true
+          },
+          "TipusKod": {
+            "type": "integer",
+            "description": "VMO típuskód pl felszíni, hidromet...",
+            "format": "int32"
+          },
+          "SzervezetKod": {
+            "type": "integer",
+            "description": "Tulajdonso szervezet kódja",
+            "format": "int32"
+          },
+          "EOVx": {
+            "type": "number",
+            "description": "Objektum földrajzi EOV koordinátája",
+            "format": "double",
+            "nullable": true
+          },
+          "EOVy": {
+            "type": "number",
+            "description": "Objektum földrajzi EOV koordinátája",
+            "format": "double",
+            "nullable": true
+          },
+          "Uzemel": {
+            "type": "boolean",
+            "description": "A lekérdezés időpontjában az állomás üzemel-e"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Vízrajzi megfigyelési objektum"
+      }
+    },
+    "securitySchemes": {
+      "Bearer": {
+        "type": "apiKey",
+        "description": "JWT Authorization header using the Bearer scheme. \r\n\r\n Enter 'Bearer' [space] and then your token in the text input below.\r\n\r\nExample: \"Bearer 12345abcdef\"",
+        "name": "Authorization",
+        "in": "header"
+      }
+    }
+  }
+}

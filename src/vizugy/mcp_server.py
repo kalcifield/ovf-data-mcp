@@ -1,15 +1,16 @@
 from datetime import datetime
+from typing import Any
+
+from mcp.server.fastmcp import FastMCP
 
 from .factory import create_service
 
 
-def build_server():
-    from mcp.server.fastmcp import FastMCP
-
+def build_server() -> FastMCP:
     mcp = FastMCP("vizugy", instructions="Read-only discovery of public Hungarian water datasets.")
 
     @mcp.tool()
-    async def discover_datasets(query: str | None = None, limit: int = 50) -> dict:
+    async def discover_datasets(query: str | None = None, limit: int = 50) -> dict[str, Any]:
         """Find public water datasets by catalogue identifier; results are bounded."""
         service = create_service()
         try:
@@ -18,7 +19,7 @@ def build_server():
             await service.close()
 
     @mcp.tool()
-    async def describe_dataset(dataset_id: str, layer_id: int | None = None) -> dict:
+    async def describe_dataset(dataset_id: str, layer_id: int | None = None) -> dict[str, Any]:
         """Inspect one dataset or layer, including schema, CRS, limits, and provenance."""
         service = create_service()
         try:
@@ -27,7 +28,7 @@ def build_server():
             await service.close()
 
     @mcp.tool()
-    async def list_measurement_types() -> dict:
+    async def list_measurement_types() -> dict[str, Any]:
         """List authoritative metric codes, units, valid ranges, and data-type codes."""
         service = create_service()
         try:
@@ -42,7 +43,7 @@ def build_server():
         watercourse: str | None = None,
         municipality: str | None = None,
         network: str = "surface",
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Find gauges by registry ID, name, watercourse, or municipality.
 
         network: "surface" (rivers and lakes), "wells" (shallow groundwater),
@@ -59,7 +60,7 @@ def build_server():
     @mcp.tool()
     async def nearest_stations(
         latitude: float, longitude: float, limit: int = 5, network: str = "surface"
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Find public gauges nearest a WGS84 latitude/longitude.
 
         network: "surface" (rivers and lakes), "wells" (shallow groundwater),
@@ -81,7 +82,7 @@ def build_server():
         metric: str = "water-level",
         data_type: str = "operational",
         limit: int = 1000,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Get raw observations for an explicit interval of at most 7 days."""
         service = create_service()
         try:
@@ -95,7 +96,7 @@ def build_server():
         station: str,
         metric: str = "water-level",
         data_type: str = "operational",
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Resolve a station and report documented temporal coverage before querying."""
         service = create_service()
         try:
@@ -114,7 +115,7 @@ def build_server():
         data_type: str = "operational",
         interval: str = "daily",
         operation: str = "max",
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Aggregate observations server-side over daily, ten-day, monthly, or yearly buckets."""
         service = create_service()
         try:

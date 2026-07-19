@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+uv run datamodel-codegen \
+  --input openapi/vraquery-v1.0.0.json \
+  --input-file-type openapi \
+  --output src/vizugy/_generated/vra_models.py \
+  --output-model-type pydantic_v2.BaseModel \
+  --target-python-version 3.11 \
+  --use-standard-collections \
+  --use-union-operator \
+  --use-schema-description \
+  --disable-timestamp \
+  --formatters ruff-check ruff-format

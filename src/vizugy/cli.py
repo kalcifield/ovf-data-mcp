@@ -1,12 +1,24 @@
 import asyncio
 import json
+from collections.abc import Coroutine
 from datetime import datetime
 from enum import Enum
+from typing import Any, TypeVar
 
 import typer
 
 from .errors import NotFoundError, UpstreamError
 from .factory import create_service
+from .models import (
+    Coverage,
+    DatasetDescription,
+    ObservationResult,
+    Page,
+    QueryPlan,
+    StationPage,
+)
+
+T = TypeVar("T")
 
 
 class Output(str, Enum):
@@ -19,7 +31,7 @@ datasets = typer.Typer(no_args_is_help=True)
 app.add_typer(datasets, name="datasets")
 
 
-def run(coro):
+def run(coro: Coroutine[Any, Any, T]) -> T:
     try:
         return asyncio.run(coro)
     except NotFoundError as exc:
@@ -50,7 +62,7 @@ def list_datasets(
 ) -> None:
     service = create_service()
 
-    async def operation():
+    async def operation() -> Page:
         try:
             return await service.list_datasets(query, limit)
         finally:
@@ -69,7 +81,7 @@ def list_datasets(
 def describe_dataset(dataset_id: str, layer: int | None = typer.Option(None)) -> None:
     service = create_service()
 
-    async def operation():
+    async def operation() -> DatasetDescription:
         try:
             return await service.describe_dataset(dataset_id, layer)
         finally:
@@ -86,7 +98,7 @@ app.add_typer(observations, name="observations")
 app.add_typer(catalog, name="catalog")
 
 
-def emit_page(page, format: Output) -> None:
+def emit_page(page: Page | StationPage, format: Output) -> None:
     if format == Output.jsonl:
         for item in page.items:
             print(item.model_dump_json())
@@ -100,7 +112,7 @@ def measurement_catalog() -> None:
     """List authoritative metric codes, units, ranges, and data types."""
     service = create_service()
 
-    async def operation():
+    async def operation() -> dict[str, Any]:
         try:
             return await service.measurement_catalog()
         finally:
@@ -123,7 +135,7 @@ def search_stations(
 ) -> None:
     service = create_service()
 
-    async def operation():
+    async def operation() -> StationPage:
         try:
             return await service.find_stations(query, limit, watercourse, municipality, network)
         finally:
@@ -145,7 +157,7 @@ def nearest_stations(
 ) -> None:
     service = create_service()
 
-    async def operation():
+    async def operation() -> StationPage:
         try:
             return await service.nearest_stations(latitude, longitude, limit, network)
         finally:
@@ -167,7 +179,7 @@ def get_observations(
 ) -> None:
     service = create_service()
 
-    async def operation():
+    async def operation() -> QueryPlan | ObservationResult:
         try:
             if explain:
                 return await service.explain_observation_query(
@@ -181,8 +193,10 @@ def get_observations(
 
     result = run(operation())
     if explain:
+        assert isinstance(result, QueryPlan)
         print(result.model_dump_json(indent=2))
         return
+    assert isinstance(result, ObservationResult)
     if format == Output.jsonl:
         for item in result.items:
             print(item.model_dump_json())
@@ -205,7 +219,7 @@ def observation_coverage(
     """Inspect temporal coverage before querying values."""
     service = create_service()
 
-    async def operation():
+    async def operation() -> Coverage:
         try:
             return await service.inspect_coverage(station, metric, data_type)
         finally:
@@ -229,7 +243,7 @@ def aggregate_observations(
     """Run documented server-side aggregation over a bounded interval."""
     service = create_service()
 
-    async def execute():
+    async def execute() -> QueryPlan | ObservationResult:
         try:
             if explain:
                 return await service.explain_observation_query(
@@ -255,8 +269,11 @@ def aggregate_observations(
 
     result = run(execute())
     if explain:
+        assert isinstance(result, QueryPlan)
         print(result.model_dump_json(indent=2))
-    elif format == Output.jsonl:
+        return
+    assert isinstance(result, ObservationResult)
+    if format == Output.jsonl:
         for item in result.items:
             print(item.model_dump_json())
         print(json.dumps({"_meta": result.model_dump(mode="json", exclude={"items"})}))

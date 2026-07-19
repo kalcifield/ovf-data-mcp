@@ -11,8 +11,8 @@ repos:
         entry: uv run ruff format --check .
         language: system
         pass_filenames: false
-      - id: ty-check
-        name: ty check
-        entry: uv run ty check
+      - id: mypy-check
+        name: mypy strict
+        entry: uv run mypy src tests
         language: system
         pass_filenames: false

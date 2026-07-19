@@ -51,10 +51,10 @@ catalogue discovery. Do not expose arbitrary ArcGIS SQL or make anomaly judgment
 
 `models` defines stable domain envelopes and provenance. `providers` owns ArcGIS
 catalogue behavior. `vra_provider` follows the published OpenAPI contract for stations,
-catalogues, and observations. `service` owns intent operations and bounds. CLI and MCP
-call only `service`. Public domain DTOs are intentionally curated; upstream wire
-models should be generated from the OpenAPI schema when broader endpoint coverage is
-added.
+catalogues, and observations. Its Pydantic wire models are generated from the pinned
+OpenAPI schema; `vra_provider` retains transport policy and maps them into curated public
+domain DTOs. `service` owns intent operations and bounds. CLI and MCP call only
+`service`.
 
 Errors: retry transport failures and 429/5xx twice with short exponential backoff;
 never retry validation/not-found; emit no partial success without explicit truncation.

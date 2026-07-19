@@ -1,10 +1,19 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, TypeVar
 
 import httpx
+from pydantic import TypeAdapter
 
+from ._generated.vra_models import (
+    AdatFajta,
+    AdatTipus,
+    DataCatalogMinMax,
+    InternetVMO,
+    TSShortItemDTResponseTSListFilter,
+    TSShortResponse,
+)
 from .errors import UpstreamError
 from .models import Coverage, Observation, Provenance, Station
 
@@ -18,6 +27,15 @@ NETWORKS = {
     "deep-wells": (13, "deep-well"),
     "precipitation": (14, "precip"),
 }
+
+T = TypeVar("T")
+TOKEN_RESPONSE = TypeAdapter(dict[str, str])
+METRICS_RESPONSE = TypeAdapter(list[AdatFajta])
+DATA_TYPES_RESPONSE = TypeAdapter(list[AdatTipus])
+STATIONS_RESPONSE = TypeAdapter(list[InternetVMO])
+OBSERVATIONS_RESPONSE = TypeAdapter(list[TSShortResponse])
+COVERAGE_RESPONSE = TypeAdapter(list[DataCatalogMinMax])
+AGGREGATES_RESPONSE = TypeAdapter(list[TSShortItemDTResponseTSListFilter])
 
 
 class VRAProvider:
@@ -51,10 +69,10 @@ class VRAProvider:
                 headers={"Origin": "https://data.vizugy.hu", "Referer": "https://data.vizugy.hu/"},
             )
             response.raise_for_status()
-            self._token = response.json()["access_token"]
+            self._token = TOKEN_RESPONSE.validate_python(response.json())["access_token"]
         return {"Authorization": f"Bearer {self._token}"}
 
-    async def _request(self, method: str, path: str, **kwargs: Any) -> Any:
+    async def _request(self, method: str, path: str, adapter: TypeAdapter[T], **kwargs: Any) -> T:
         try:
             response = await self.client.request(
                 method,
@@ -71,7 +89,7 @@ class VRAProvider:
                     **kwargs,
                 )
             response.raise_for_status()
-            return response.json()
+            return adapter.validate_python(response.json())
         except (httpx.HTTPError, KeyError, ValueError) as exc:
             # str() of httpx timeout exceptions is often empty; fall back to the class name.
             detail = str(exc) or type(exc).__name__
@@ -79,16 +97,19 @@ class VRAProvider:
 
     async def catalogs(self) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         if self._metrics is None:
-            self._metrics = await self._request("GET", "Base/AdatFajta")
+            metrics = await self._request("GET", "Base/AdatFajta", METRICS_RESPONSE)
+            self._metrics = [item.model_dump(mode="json") for item in metrics]
         if self._data_types is None:
-            self._data_types = await self._request("GET", "Base/AdatTipus")
+            data_types = await self._request("GET", "Base/AdatTipus", DATA_TYPES_RESPONSE)
+            self._data_types = [item.model_dump(mode="json") for item in data_types]
         return self._metrics, self._data_types
 
     async def stations(self, network: str = "surface") -> list[Station]:
         if network not in NETWORKS:
             raise ValueError(f"unknown network: {network}; expected one of: {', '.join(NETWORKS)}")
         vmo_type, prefix = NETWORKS[network]
-        data = await self._request("GET", f"Vra/InternetVmo/{vmo_type}/true")
+        response = await self._request("GET", f"Vra/InternetVmo/{vmo_type}/true", STATIONS_RESPONSE)
+        data = [item.model_dump(mode="json") for item in response]
         source = f"{self.base_url}/Vra/InternetVmo/{vmo_type}/true"
         retrieved = datetime.now(UTC).isoformat()
         return [
@@ -176,7 +197,8 @@ class VRAProvider:
             "StartTime": start.astimezone(UTC).isoformat(),
             "EndTime": end.astimezone(UTC).isoformat(),
         }
-        data = await self._request("POST", "TS/TsShortList", json=body)
+        response = await self._request("POST", "TS/TsShortList", OBSERVATIONS_RESPONSE, json=body)
+        data = [item.model_dump(mode="json") for item in response]
         items = data[0].get("TsItemList") or [] if data else []
         total = len(items)
         if total > limit:
@@ -208,12 +230,14 @@ class VRAProvider:
         data_type = await self.resolve_data_type(data_type_name)
 
         async def request(type_code: int) -> list[dict[str, Any]]:
-            return await self._request(
+            response = await self._request(
                 "POST",
                 "Base/DataCatalogMinMax",
+                COVERAGE_RESPONSE,
                 params={"hafKod": metric["KodAZ"], "atKod": type_code},
                 json=[station.registry_number],
             )
+            return [item.model_dump(mode="json") for item in response]
 
         rows = await request(data_type["KodAZ"])
         warnings: list[str] = []
@@ -275,7 +299,10 @@ class VRAProvider:
                 }
             ],
         }
-        data = await self._request("POST", "TS/TSListFilterShort", json=body)
+        response = await self._request(
+            "POST", "TS/TSListFilterShort", AGGREGATES_RESPONSE, json=body
+        )
+        data = [item.model_dump(mode="json") for item in response]
         responses = data[0].get("FilteredResponse") or [] if data else []
         items = responses[0].get("TsItemList") or [] if responses else []
         source = f"{self.base_url}/TS/TSListFilterShort"

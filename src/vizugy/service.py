@@ -1,6 +1,7 @@
 import asyncio
 import math
 from datetime import UTC, datetime
+from typing import Any, Literal
 
 from zoneinfo import ZoneInfo
 
@@ -8,6 +9,7 @@ from .errors import NotFoundError, UpstreamError
 from .models import (
     Coverage,
     DatasetDescription,
+    Observation,
     ObservationResult,
     ObservationPoint,
     Page,
@@ -122,7 +124,7 @@ class VizugyService:
             truncated=len(items) > limit,
         )
 
-    async def measurement_catalog(self) -> dict:
+    async def measurement_catalog(self) -> dict[str, Any]:
         vra = self._vra()
         metrics, data_types = await vra.catalogs()
         return {
@@ -215,8 +217,8 @@ class VizugyService:
         metric_item = await self._vra().resolve_metric(metric)
         data_type_item = await self._vra().resolve_data_type(data_type)
         duration = (end - start).total_seconds() / 86400
-        warnings = []
-        mode = "aggregate" if interval and operation else "raw"
+        warnings: list[str] = []
+        mode: Literal["raw", "aggregate"] = "aggregate" if interval and operation else "raw"
         if mode == "raw" and duration > 7:
             warnings.append("Raw intervals over 7 days are rejected; use aggregation.")
         if mode == "raw" and duration > 3:
@@ -318,7 +320,9 @@ class VizugyService:
             raise ValueError("aggregation may exceed 1000 buckets; narrow the interval")
         chunks = 0
 
-        async def fetch(chunk_start: datetime, chunk_end: datetime, depth: int) -> list:
+        async def fetch(
+            chunk_start: datetime, chunk_end: datetime, depth: int
+        ) -> list[Observation]:
             nonlocal chunks
             try:
                 result = await self._vra().aggregate_observations(

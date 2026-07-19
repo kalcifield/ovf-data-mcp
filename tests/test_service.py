@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from typing import Any, cast
 
 import httpx
 import pytest
@@ -12,11 +13,11 @@ from vizugy.service import VizugyService
 FIXTURES = Path(__file__).parent / "fixtures"
 
 
-def fixture(name: str) -> dict:
-    return json.loads((FIXTURES / name).read_text())
+def fixture(name: str) -> dict[str, Any]:
+    return cast(dict[str, Any], json.loads((FIXTURES / name).read_text()))
 
 
-def provider_with(routes: dict[str, tuple[int, dict]]) -> ArcGISProvider:
+def provider_with(routes: dict[str, tuple[int, dict[str, Any]]]) -> ArcGISProvider:
     def handler(request: httpx.Request) -> httpx.Response:
         status, body = routes.get(
             request.url.path, (404, {"error": {"code": 404, "message": "missing"}})
@@ -29,7 +30,7 @@ def provider_with(routes: dict[str, tuple[int, dict]]) -> ArcGISProvider:
 
 
 @pytest.mark.asyncio
-async def test_discovery_normalizes_and_bounds_results():
+async def test_discovery_normalizes_and_bounds_results() -> None:
     provider = provider_with(
         {
             "/arcgis/rest/services": (200, fixture("services.json")),
@@ -47,7 +48,7 @@ async def test_discovery_normalizes_and_bounds_results():
 
 
 @pytest.mark.asyncio
-async def test_layer_mapping_preserves_raw_schema():
+async def test_layer_mapping_preserves_raw_schema() -> None:
     provider = provider_with(
         {
             "/arcgis/rest/services": (200, fixture("services.json")),
@@ -66,7 +67,7 @@ async def test_layer_mapping_preserves_raw_schema():
 
 
 @pytest.mark.asyncio
-async def test_not_found_is_domain_error():
+async def test_not_found_is_domain_error() -> None:
     provider = provider_with(
         {
             "/arcgis/rest/services": (200, fixture("services.json")),
@@ -81,7 +82,7 @@ async def test_not_found_is_domain_error():
 
 
 @pytest.mark.asyncio
-async def test_upstream_error_after_retries():
+async def test_upstream_error_after_retries() -> None:
     provider = provider_with({"/arcgis/rest/services": (503, {"message": "down"})})
     try:
         with pytest.raises(UpstreamError):
@@ -91,7 +92,7 @@ async def test_upstream_error_after_retries():
 
 
 @pytest.mark.asyncio
-async def test_protected_folder_becomes_explicit_warning():
+async def test_protected_folder_becomes_explicit_warning() -> None:
     provider = provider_with(
         {
             "/arcgis/rest/services": (200, fixture("services.json")),
@@ -110,7 +111,7 @@ async def test_protected_folder_becomes_explicit_warning():
 
 
 @pytest.mark.asyncio
-async def test_long_aggregate_windows_bisect_on_upstream_failure():
+async def test_long_aggregate_windows_bisect_on_upstream_failure() -> None:
     import json as jsonlib
     from datetime import datetime, timedelta
 
@@ -177,7 +178,7 @@ async def test_long_aggregate_windows_bisect_on_upstream_failure():
 
 
 @pytest.mark.asyncio
-async def test_protected_arcgis_folder_fails_fast_without_retries():
+async def test_protected_arcgis_folder_fails_fast_without_retries() -> None:
     attempts = []
 
     def handler(request: httpx.Request) -> httpx.Response:

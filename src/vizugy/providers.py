@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import time
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 
 import httpx
 
@@ -32,7 +32,7 @@ class ArcGISProvider:
             try:
                 response = await self.client.get(url, params={"f": "pjson"})
                 response.raise_for_status()
-                data = response.json()
+                data = cast(dict[str, Any], response.json())
                 if "error" in data:
                     code = data["error"].get("code")
                     if code == 404:

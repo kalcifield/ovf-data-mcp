@@ -47,9 +47,17 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 100
 
+[tool.mypy]
+strict = true
+
+[tool.coverage.run]
+branch = true
+omit = ["src/vizugy/_generated/*"]
+
 [dependency-groups]
 dev = [
+    "datamodel-code-generator==0.57.0",
+    "mypy>=2.3,<3",
     "prek>=0.4.10",
     "ruff>=0.15.22",
-    "ty>=0.0.60",
 ]
