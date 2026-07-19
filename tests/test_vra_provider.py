@@ -244,6 +244,35 @@ async def test_soil_observations_preserve_and_filter_data_ext() -> None:
 
 
 @pytest.mark.asyncio
+async def test_stations_with_metric_batches_coverage_and_filters() -> None:
+    station_count = 450
+    payloads: list[JsonValue] = [station_payload(number) for number in range(1, station_count + 1)]
+
+    def coverage(request: httpx.Request) -> httpx.Response:
+        ids = json.loads(request.content)
+        assert len(ids) <= 200
+        return httpx.Response(200, json=[{"Torzsszam": tsz} for tsz in ids if tsz % 2 == 0])
+
+    provider, requests = provider_with(
+        {
+            "/Vra/InternetVmo/14/true": payloads,
+            "/Base/AdatFajta": [metric_payload()],
+            "/Base/AdatTipus": [data_type_payload()],
+            "/Base/DataCatalogMinMax": coverage,
+        }
+    )
+    try:
+        stations = await provider.stations_with_metric("precipitation", "water-level")
+    finally:
+        await provider.close()
+
+    coverage_requests = [item for item in requests if item.url.path.endswith("DataCatalogMinMax")]
+    assert len(coverage_requests) == 3
+    assert len(stations) == station_count // 2
+    assert all(station.registry_number % 2 == 0 for station in stations)
+
+
+@pytest.mark.asyncio
 async def test_quality_observations_use_long_format_and_decode_codes() -> None:
     provider, requests = provider_with(
         {

@@ -32,6 +32,7 @@ NETWORKS = {
     "precipitation": (14, "precip"),
 }
 SOIL_METRIC_CODES = frozenset({299, 303})
+COVERAGE_BATCH_SIZE = 200
 SOIL_DEPTHS_CM = (10, 20, 30, 45, 60, 75)
 
 T = TypeVar("T")
@@ -295,10 +296,14 @@ class VRAProvider:
         """Return catalogue stations carrying any documented data type for a metric."""
         stations = await self.stations(network)
         metric = await self.resolve_metric(metric_name)
-        rows = await self._coverage_rows_for_ids(
-            [station.registry_number for station in stations], metric["KodAZ"], 0
-        )
-        available = {row["Torzsszam"] for row in rows}
+        # Networks can hold thousands of stations; keep each coverage request bounded.
+        ids = [station.registry_number for station in stations]
+        available: set[int] = set()
+        for offset in range(0, len(ids), COVERAGE_BATCH_SIZE):
+            rows = await self._coverage_rows_for_ids(
+                ids[offset : offset + COVERAGE_BATCH_SIZE], metric["KodAZ"], 0
+            )
+            available.update(row["Torzsszam"] for row in rows)
         return [station for station in stations if station.registry_number in available]
 
     async def coverage(self, station: Station, metric_name: str, data_type_name: str) -> Coverage:
