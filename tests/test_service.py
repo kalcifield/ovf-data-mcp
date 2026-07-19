@@ -4,6 +4,7 @@ from typing import Any, cast
 
 import httpx
 import pytest
+import respx
 
 from vizugy.errors import NotFoundError, UpstreamError
 from vizugy.providers import ArcGISProvider
@@ -18,14 +19,11 @@ def fixture(name: str) -> dict[str, Any]:
 
 
 def provider_with(routes: dict[str, tuple[int, dict[str, Any]]]) -> ArcGISProvider:
-    def handler(request: httpx.Request) -> httpx.Response:
-        status, body = routes.get(
-            request.url.path, (404, {"error": {"code": 404, "message": "missing"}})
-        )
-        return httpx.Response(status, json=body)
-
+    router = respx.Router(assert_all_mocked=True)
+    for path, (status, body) in routes.items():
+        router.route(path=path).respond(status, json=body)
     provider = ArcGISProvider("https://example.test/arcgis/rest", cache_ttl=300)
-    provider.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    provider.client = httpx.AsyncClient(transport=httpx.MockTransport(router.async_handler))
     return provider
 
 

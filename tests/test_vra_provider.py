@@ -5,6 +5,7 @@ from typing import TypeAlias
 
 import httpx
 import pytest
+import respx
 
 from vizugy.errors import UpstreamError
 from vizugy.models import Provenance, Station
@@ -57,23 +58,22 @@ def data_type_payload() -> dict[str, JsonValue]:
 
 def provider_with(
     routes: dict[str, Route],
-) -> tuple[VRAProvider, list[httpx.Request]]:
-    requests: list[httpx.Request] = []
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        requests.append(request)
-        if request.url.path == "/token":
-            return httpx.Response(200, json={"access_token": "test"})
-        route = routes.get(request.url.path)
+) -> tuple[VRAProvider, respx.Router]:
+    router = respx.Router(assert_all_mocked=True)
+    router.get(path="/token").respond(200, json={"access_token": "test"})
+    for path, route in routes.items():
+        mocked = router.route(path=path)
         if callable(route):
-            return route(request)
-        if route is not None:
-            return httpx.Response(200, json=route)
-        return httpx.Response(404)
-
+            mocked.mock(side_effect=route)
+        else:
+            mocked.respond(200, json=route)
     provider = VRAProvider("https://api.test", "https://auth.test/token")
-    provider.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    return provider, requests
+    provider.client = httpx.AsyncClient(transport=httpx.MockTransport(router.async_handler))
+    return provider, router
+
+
+def requests_from(router: respx.Router) -> list[httpx.Request]:
+    return [call.request for call in router.calls]
 
 
 @pytest.mark.asyncio
@@ -91,7 +91,7 @@ async def test_station_networks_map_vmo_codes_and_namespaces(
 ) -> None:
     path = f"/Vra/InternetVmo/{vmo_code}/true"
     payload = station_payload(502)
-    provider, requests = provider_with({path: [payload]})
+    provider, router = provider_with({path: [payload]})
     try:
         stations = await provider.stations(network)
     finally:
@@ -103,24 +103,24 @@ async def test_station_networks_map_vmo_codes_and_namespaces(
     assert stations[0].record_low == -70.0
     assert stations[0].record_high == 891.0
     assert stations[0].raw == payload
-    assert requests[-1].url.path == path
+    assert requests_from(router)[-1].url.path == path
 
 
 @pytest.mark.asyncio
 async def test_unknown_station_network_is_rejected_before_request() -> None:
-    provider, requests = provider_with({})
+    provider, router = provider_with({})
     try:
         with pytest.raises(ValueError, match="unknown network"):
             await provider.stations("boreholes")
     finally:
         await provider.close()
 
-    assert requests == []
+    assert requests_from(router) == []
 
 
 @pytest.mark.asyncio
 async def test_metric_filter_does_not_send_empty_station_list_upstream() -> None:
-    provider, requests = provider_with(
+    provider, router = provider_with(
         {
             "/Vra/InternetVmo/14/true": [],
             "/Base/AdatFajta": [
@@ -135,12 +135,14 @@ async def test_metric_filter_does_not_send_empty_station_list_upstream() -> None
         await provider.close()
 
     assert stations == []
-    assert not any(request.url.path.endswith("DataCatalogMinMax") for request in requests)
+    assert not any(
+        request.url.path.endswith("DataCatalogMinMax") for request in requests_from(router)
+    )
 
 
 @pytest.mark.asyncio
 async def test_observations_send_filter_and_map_compact_values() -> None:
-    provider, requests = provider_with(
+    provider, router = provider_with(
         {
             "/Vra/InternetVmo/11/true": [station_payload()],
             "/Base/AdatFajta": [metric_payload()],
@@ -166,7 +168,9 @@ async def test_observations_send_filter_and_map_compact_values() -> None:
     finally:
         await provider.close()
 
-    request = next(item for item in requests if item.url.path.endswith("/TS/TsShortList"))
+    request = next(
+        item for item in requests_from(router) if item.url.path.endswith("/TS/TsShortList")
+    )
     assert json.loads(request.content) == {
         "TorzsszamList": [1],
         "AdatFajtaKod": 68,
@@ -197,7 +201,7 @@ async def test_observations_send_filter_and_map_compact_values() -> None:
 @pytest.mark.asyncio
 async def test_soil_observations_preserve_and_filter_data_ext() -> None:
     soil_metric = {**metric_payload(), "KodAZ": 299, "Nev": "Talajnedvesség", "Mertekegyseg": "%"}
-    provider, requests = provider_with(
+    provider, router = provider_with(
         {
             "/Base/AdatFajta": [soil_metric],
             "/Base/AdatTipus": [data_type_payload()],
@@ -236,7 +240,9 @@ async def test_soil_observations_preserve_and_filter_data_ext() -> None:
     finally:
         await provider.close()
 
-    request = next(item for item in requests if item.url.path.endswith("/TS/TsShortList"))
+    request = next(
+        item for item in requests_from(router) if item.url.path.endswith("/TS/TsShortList")
+    )
     assert json.loads(request.content)["DataExtFilter"] == 10
     assert observations[0].data_ext == 10
     assert observations[0].dimensions == {"depth_cm": 10}
@@ -253,7 +259,7 @@ async def test_stations_with_metric_batches_coverage_and_filters() -> None:
         assert len(ids) <= 200
         return httpx.Response(200, json=[{"Torzsszam": tsz} for tsz in ids if tsz % 2 == 0])
 
-    provider, requests = provider_with(
+    provider, router = provider_with(
         {
             "/Vra/InternetVmo/14/true": payloads,
             "/Base/AdatFajta": [metric_payload()],
@@ -266,7 +272,9 @@ async def test_stations_with_metric_batches_coverage_and_filters() -> None:
     finally:
         await provider.close()
 
-    coverage_requests = [item for item in requests if item.url.path.endswith("DataCatalogMinMax")]
+    coverage_requests = [
+        item for item in requests_from(router) if item.url.path.endswith("DataCatalogMinMax")
+    ]
     assert len(coverage_requests) == 3
     assert len(stations) == station_count // 2
     assert all(station.registry_number % 2 == 0 for station in stations)
@@ -274,7 +282,7 @@ async def test_stations_with_metric_batches_coverage_and_filters() -> None:
 
 @pytest.mark.asyncio
 async def test_quality_observations_use_long_format_and_decode_codes() -> None:
-    provider, requests = provider_with(
+    provider, router = provider_with(
         {
             "/Vra/InternetVmo/11/true": [station_payload()],
             "/Base/AdatFajta": [metric_payload()],
@@ -310,7 +318,7 @@ async def test_quality_observations_use_long_format_and_decode_codes() -> None:
     finally:
         await provider.close()
 
-    assert not any(item.url.path.endswith("/TS/TsShortList") for item in requests)
+    assert not any(item.url.path.endswith("/TS/TsShortList") for item in requests_from(router))
     first = observations[0]
     assert (first.quality_code, first.quality) == (3, "gyanús")
     assert (first.field_quality_code, first.field_quality) == (8, "mért adat")
@@ -334,7 +342,7 @@ async def test_coverage_falls_back_from_composed_operational_type() -> None:
             ],
         )
 
-    provider, requests = provider_with(
+    provider, router = provider_with(
         {
             "/Vra/InternetVmo/11/true": [station_payload()],
             "/Base/AdatFajta": [metric_payload()],
@@ -349,7 +357,7 @@ async def test_coverage_falls_back_from_composed_operational_type() -> None:
         await provider.close()
 
     coverage_requests = [
-        item for item in requests if item.url.path.endswith("/Base/DataCatalogMinMax")
+        item for item in requests_from(router) if item.url.path.endswith("/Base/DataCatalogMinMax")
     ]
     assert [item.url.params["atKod"] for item in coverage_requests] == ["101", "0"]
     assert all(json.loads(item.content) == [1] for item in coverage_requests)
@@ -360,7 +368,7 @@ async def test_coverage_falls_back_from_composed_operational_type() -> None:
 
 @pytest.mark.asyncio
 async def test_available_data_types_names_all_documented_coverage() -> None:
-    provider, requests = provider_with(
+    provider, router = provider_with(
         {
             "/Vra/InternetVmo/13/true": [station_payload()],
             "/Base/AdatFajta": [
@@ -400,14 +408,16 @@ async def test_available_data_types_names_all_documented_coverage() -> None:
             "available_until": "2017-06-15T11:07:00Z",
         }
     ]
-    request = next(item for item in requests if item.url.path.endswith("DataCatalogMinMax"))
+    request = next(
+        item for item in requests_from(router) if item.url.path.endswith("DataCatalogMinMax")
+    )
     assert request.url.params["hafKod"] == "70"
     assert request.url.params["atKod"] == "0"
 
 
 @pytest.mark.asyncio
 async def test_aggregation_sends_bucket_operation_and_maps_response() -> None:
-    provider, requests = provider_with(
+    provider, router = provider_with(
         {
             "/Vra/InternetVmo/11/true": [station_payload()],
             "/Base/AdatFajta": [metric_payload()],
@@ -439,7 +449,9 @@ async def test_aggregation_sends_bucket_operation_and_maps_response() -> None:
     finally:
         await provider.close()
 
-    request = next(item for item in requests if item.url.path.endswith("/TS/TSListFilterShort"))
+    request = next(
+        item for item in requests_from(router) if item.url.path.endswith("/TS/TSListFilterShort")
+    )
     body = json.loads(request.content)
     assert body["Filters"][0]["AggregateFilters"] == {
         "RangeType": "daily",
@@ -453,7 +465,7 @@ async def test_aggregation_sends_bucket_operation_and_maps_response() -> None:
 @pytest.mark.asyncio
 async def test_depth_comparison_uses_one_multi_filter_request() -> None:
     soil_metric = {**metric_payload(), "KodAZ": 299, "Nev": "Talajnedvesség", "Mertekegyseg": "%"}
-    provider, requests = provider_with(
+    provider, router = provider_with(
         {
             "/Base/AdatFajta": [soil_metric],
             "/Base/AdatTipus": [data_type_payload()],
@@ -499,7 +511,9 @@ async def test_depth_comparison_uses_one_multi_filter_request() -> None:
     finally:
         await provider.close()
 
-    api_requests = [item for item in requests if item.url.path.endswith("TSListFilterShort")]
+    api_requests = [
+        item for item in requests_from(router) if item.url.path.endswith("TSListFilterShort")
+    ]
     assert len(api_requests) == 1
     filters = json.loads(api_requests[0].content)["Filters"]
     assert [item["DataExtFilter"] for item in filters] == [10, 20]
@@ -510,7 +524,7 @@ async def test_depth_comparison_uses_one_multi_filter_request() -> None:
 
 @pytest.mark.asyncio
 async def test_catalogs_are_cached() -> None:
-    provider, requests = provider_with(
+    provider, router = provider_with(
         {"/Base/AdatFajta": [metric_payload()], "/Base/AdatTipus": [data_type_payload()]}
     )
     try:
@@ -519,7 +533,9 @@ async def test_catalogs_are_cached() -> None:
     finally:
         await provider.close()
 
-    catalog_paths = [item.url.path for item in requests if item.url.path.startswith("/Base/")]
+    catalog_paths = [
+        item.url.path for item in requests_from(router) if item.url.path.startswith("/Base/")
+    ]
     assert catalog_paths == ["/Base/AdatFajta", "/Base/AdatTipus"]
     assert first == second == ([metric_payload()], [data_type_payload()])
 

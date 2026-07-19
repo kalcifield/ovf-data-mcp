@@ -22,7 +22,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-test = ["pytest>=8,<9", "pytest-asyncio>=0.25,<2"]
+test = ["pytest>=8,<9", "pytest-asyncio>=0.25,<2", "respx>=0.23,<1"]
 
 [project.scripts]
 vizugy = "vizugy.cli:app"
