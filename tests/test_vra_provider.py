@@ -258,6 +258,53 @@ async def test_coverage_falls_back_from_composed_operational_type() -> None:
 
 
 @pytest.mark.asyncio
+async def test_available_data_types_names_all_documented_coverage() -> None:
+    provider, requests = provider_with(
+        {
+            "/Vra/InternetVmo/13/true": [station_payload()],
+            "/Base/AdatFajta": [
+                {
+                    **metric_payload(),
+                    "KodAZ": 70,
+                    "Nev": "Rétegvízszint",
+                    "Mertekegyseg": "m",
+                }
+            ],
+            "/Base/AdatTipus": [
+                data_type_payload(),
+                {"KodAZ": 9, "Nev": "hidrológiai", "Ervenyes": True, "KodSorszam": 9},
+            ],
+            "/Base/DataCatalogMinMax": [
+                {
+                    "HAFKod": 70,
+                    "ATKod": 9,
+                    "Torzsszam": 1,
+                    "UTCTimeMin": "1980-09-04T05:00:00Z",
+                    "UTCTimeMax": "2017-06-15T11:07:00Z",
+                }
+            ],
+        }
+    )
+    try:
+        station = (await provider.stations("deep-wells"))[0]
+        coverage = await provider.available_data_types(station, "layer-water-level")
+    finally:
+        await provider.close()
+
+    assert coverage == [
+        {
+            "code": 9,
+            "name": "hidrológiai",
+            "available_from": "1980-09-04T05:00:00Z",
+            "available_until": "2017-06-15T11:07:00Z",
+        }
+    ]
+    request = next(item for item in requests if item.url.path.endswith("DataCatalogMinMax"))
+    assert request.url.params["hafKod"] == "70"
+    assert request.url.params["atKod"] == "0"
+
+
+@pytest.mark.asyncio
 async def test_aggregation_sends_bucket_operation_and_maps_response() -> None:
     provider, requests = provider_with(
         {

@@ -280,20 +280,10 @@ class VRAProvider:
         metric = await self.resolve_metric(metric_name)
         data_type = await self.resolve_data_type(data_type_name)
 
-        async def request(type_code: int) -> list[dict[str, Any]]:
-            response = await self._request(
-                "POST",
-                "Base/DataCatalogMinMax",
-                COVERAGE_RESPONSE,
-                params={"hafKod": metric["KodAZ"], "atKod": type_code},
-                json=[station.registry_number],
-            )
-            return cast(list[dict[str, Any]], response.raw)
-
-        rows = await request(data_type["KodAZ"])
+        rows = await self._coverage_rows(station, metric["KodAZ"], data_type["KodAZ"])
         warnings: list[str] = []
         if not rows and data_type["KodAZ"] == 101:
-            all_rows = await request(0)
+            all_rows = await self._coverage_rows(station, metric["KodAZ"], 0)
             rows = [row for row in all_rows if row.get("ATKod") == 100]
             if rows:
                 warnings.append(
@@ -320,6 +310,36 @@ class VRAProvider:
             ),
             warnings=warnings,
         )
+
+    async def available_data_types(
+        self, station: Station, metric_name: str
+    ) -> list[dict[str, Any]]:
+        """Return documented coverage for every data type carried by a station metric."""
+        metric = await self.resolve_metric(metric_name)
+        _, data_types = await self.catalogs()
+        names = {item["KodAZ"]: item["Nev"] for item in data_types}
+        rows = await self._coverage_rows(station, metric["KodAZ"], 0)
+        return [
+            {
+                "code": row["ATKod"],
+                "name": names.get(row["ATKod"], f"code {row['ATKod']}"),
+                "available_from": row.get("UTCTimeMin"),
+                "available_until": row.get("UTCTimeMax"),
+            }
+            for row in rows
+        ]
+
+    async def _coverage_rows(
+        self, station: Station, metric_code: int, data_type_code: int
+    ) -> list[dict[str, Any]]:
+        response = await self._request(
+            "POST",
+            "Base/DataCatalogMinMax",
+            COVERAGE_RESPONSE,
+            params={"hafKod": metric_code, "atKod": data_type_code},
+            json=[station.registry_number],
+        )
+        return cast(list[dict[str, Any]], response.raw)
 
     async def aggregate_observations(
         self,

@@ -116,3 +116,32 @@ async def test_aggregate_returns_compact_points_and_envelope_provenance() -> Non
     }
     assert result.provenance == provenance
     assert result.query.will_fetch is True
+
+
+@pytest.mark.asyncio
+async def test_empty_aggregate_reports_available_data_types() -> None:
+    app, vra = service()
+    vra.aggregate_observations.return_value = []
+    vra.available_data_types.return_value = [
+        {
+            "code": 9,
+            "name": "hidrológiai",
+            "available_from": "1980-09-04T05:00:00Z",
+            "available_until": "2017-06-15T11:07:00Z",
+        }
+    ]
+
+    result = await app.aggregate_observations(
+        "surface:2046",
+        "water-level",
+        "operational",
+        datetime(2016, 1, 1, tzinfo=UTC),
+        datetime(2017, 1, 1, tzinfo=UTC),
+        "monthly",
+        "avg",
+    )
+
+    assert result.items == []
+    assert "No observations returned for operatív összefésült (101)" in result.warnings[1]
+    assert "hidrológiai (9, 1980-09-04" in result.warnings[1]
+    assert "--data-type NAME" in result.warnings[1]

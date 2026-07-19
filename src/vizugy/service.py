@@ -277,6 +277,9 @@ class VizugyService:
         )
         plan.will_fetch = True
         provenance = items[0].provenance if items else plan.station.provenance
+        warnings = list(plan.warnings)
+        if not items:
+            warnings.append(await self._empty_observation_warning(plan))
         return ObservationResult(
             station=plan.station,
             query=plan,
@@ -294,7 +297,40 @@ class VizugyService:
             returned=len(items),
             truncated=total > len(items),
             provenance=provenance,
-            warnings=plan.warnings,
+            warnings=warnings,
+        )
+
+    async def _empty_observation_warning(self, plan: QueryPlan) -> str:
+        try:
+            coverage = await self._vra().available_data_types(plan.station, str(plan.metric_code))
+        except UpstreamError:
+            # A secondary diagnostic failure must not hide the valid empty query response.
+            return (
+                f"No observations returned for {plan.data_type} ({plan.data_type_code}); "
+                "coverage diagnostics were temporarily unavailable."
+            )
+        requested = next((item for item in coverage if item["code"] == plan.data_type_code), None)
+        if requested:
+            detail = (
+                f"documented coverage is {requested['available_from']} to "
+                f"{requested['available_until']}"
+            )
+        else:
+            detail = "no documented coverage exists for this station and metric"
+        alternatives = [item for item in coverage if item["code"] != plan.data_type_code]
+        if not alternatives:
+            return (
+                f"No observations returned for {plan.data_type} ({plan.data_type_code}); {detail}."
+            )
+        choices = ", ".join(
+            f"{item['name']} ({item['code']}, {item['available_from']} to "
+            f"{item['available_until']})"
+            for item in alternatives
+        )
+        return (
+            f"No observations returned for {plan.data_type} ({plan.data_type_code}); {detail}. "
+            f"Other data types with documented coverage: {choices}. Specify data_type explicitly "
+            f"(CLI: --data-type NAME)."
         )
 
     async def aggregate_observations(
@@ -368,6 +404,8 @@ class VizugyService:
             "VRAQuery aggregation buckets follow upstream hydrological/local-day boundaries; "
             "returned timestamps are UTC bucket labels."
         ]
+        if not items:
+            warnings.append(await self._empty_observation_warning(plan))
         if chunks > 1:
             warnings.append(
                 f"window exceeded an upstream limit and was fetched in {chunks} chunked requests"

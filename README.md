@@ -72,6 +72,10 @@ vizugy observations aggregate surface:818 \
 
 More examples, each built the same way:
 
+- **[Hungary's hidden groundwater pulse](https://kalcifield.github.io/ovf-data-mcp/examples/hungary-deep-groundwater-pulse.html)**
+  ([source](docs/examples/hungary-deep-groundwater-pulse.html)) — the latest reported
+  month at 30 spatially distributed deep wells, ranked against decades of observations
+  from the same calendar month, with 8,679 historical monthly values behind the view.
 - **[A year of the Danube, measured in Balatons](https://kalcifield.github.io/ovf-data-mcp/examples/danube-in-balatons.html)**
   ([source](docs/examples/danube-in-balatons.html)) — 47 km³ of water passed Budapest
   this year, about one Lake Balaton every 15 days, integrated from daily discharge.
@@ -226,6 +230,10 @@ Useful data-type aliases:
 - `processed`
 - `hydrological`
 - `operational`
+
+An empty result includes documented coverage for other available data types, when the
+upstream catalogue provides it. Retry explicitly with the suggested `--data-type`; the
+tool never silently substitutes one data type for another.
 
 Numeric VRA codes and exact catalogue names are also accepted.
 
