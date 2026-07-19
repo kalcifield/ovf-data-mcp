@@ -116,7 +116,8 @@ def search_stations(
     watercourse: str | None = typer.Option(None, help="Case-insensitive watercourse filter."),
     municipality: str | None = typer.Option(None, help="Case-insensitive municipality filter."),
     network: str = typer.Option(
-        "surface", help='Station network: "surface" or "wells" (shallow groundwater).'
+        "surface",
+        help='Station network: "surface", "wells" (shallow groundwater), "deep-wells" (confined/layer aquifer), or "precipitation".',
     ),
     format: Output = typer.Option(Output.json),
 ) -> None:
@@ -137,7 +138,8 @@ def nearest_stations(
     longitude: float,
     limit: int = typer.Option(5, min=1, max=100),
     network: str = typer.Option(
-        "surface", help='Station network: "surface" or "wells" (shallow groundwater).'
+        "surface",
+        help='Station network: "surface", "wells" (shallow groundwater), "deep-wells" (confined/layer aquifer), or "precipitation".',
     ),
     format: Output = typer.Option(Output.json),
 ) -> None:

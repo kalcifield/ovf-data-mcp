@@ -10,7 +10,14 @@ from .models import Coverage, Observation, Provenance, Station
 
 
 # VRAQuery VMO type code and station-ID namespace per network.
-NETWORKS = {"surface": (11, "surface"), "wells": (12, "well")}
+NETWORKS = {
+    "surface": (11, "surface"),
+    "wells": (12, "well"),
+    # Verified live 2026-07: vmo 13 stations all carry Rétegvízszint (70) series,
+    # vmo 14 stations all carry Csapadékösszeg (71) series.
+    "deep-wells": (13, "deep-well"),
+    "precipitation": (14, "precip"),
+}
 
 
 class VRAProvider:
@@ -114,6 +121,8 @@ class VRAProvider:
             "discharge": 87,
             "water-temperature": 85,
             "groundwater-level": 69,
+            "layer-water-level": 70,
+            "precipitation": 71,
         }
         code = aliases.get(value.casefold())
         if code is None and value.isdigit():

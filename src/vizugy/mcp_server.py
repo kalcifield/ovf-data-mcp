@@ -45,7 +45,8 @@ def build_server():
     ) -> dict:
         """Find gauges by registry ID, name, watercourse, or municipality.
 
-        network: "surface" (rivers and lakes) or "wells" (shallow groundwater).
+        network: "surface" (rivers and lakes), "wells" (shallow groundwater),
+        "deep-wells" (confined/layer aquifer), or "precipitation".
         """
         service = create_service()
         try:
@@ -61,7 +62,8 @@ def build_server():
     ) -> dict:
         """Find public gauges nearest a WGS84 latitude/longitude.
 
-        network: "surface" (rivers and lakes) or "wells" (shallow groundwater).
+        network: "surface" (rivers and lakes), "wells" (shallow groundwater),
+        "deep-wells" (confined/layer aquifer), or "precipitation".
         """
         service = create_service()
         try:

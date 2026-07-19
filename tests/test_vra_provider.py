@@ -165,3 +165,51 @@ async def test_wells_network_uses_vmo_12_and_well_namespace():
             await provider.stations("boreholes")
     finally:
         await provider.close()
+
+
+@pytest.mark.asyncio
+async def test_deep_wells_and_precipitation_networks_use_vmo_13_and_14():
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/token":
+            return httpx.Response(200, json={"access_token": "test"})
+        if request.url.path.endswith("/Vra/InternetVmo/13/true"):
+            return httpx.Response(
+                200,
+                json=[
+                    {
+                        "Tsz": 502,
+                        "Nev": "Hévíz-1",
+                        "Vizig": 6,
+                        "Uzem": True,
+                        "Lat": 46.787,
+                        "Lon": 17.189,
+                        "Telepules": "Hévíz",
+                    }
+                ],
+            )
+        if request.url.path.endswith("/Vra/InternetVmo/14/true"):
+            return httpx.Response(
+                200,
+                json=[
+                    {
+                        "Tsz": 9001,
+                        "Nev": "Tokaj",
+                        "Vizig": 7,
+                        "Uzem": True,
+                        "Lat": 48.117,
+                        "Lon": 21.408,
+                        "Telepules": "Tokaj",
+                    }
+                ],
+            )
+        return httpx.Response(404)
+
+    provider = VRAProvider("https://api.test", "https://auth.test/token")
+    provider.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    try:
+        deep = await provider.stations("deep-wells")
+        assert deep[0].id == "deep-well:502"
+        precip = await provider.stations("precipitation")
+        assert precip[0].id == "precip:9001"
+    finally:
+        await provider.close()

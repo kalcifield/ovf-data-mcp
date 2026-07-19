@@ -33,8 +33,9 @@ The CLI is the primary interface; MCP tools are thin adapters over identical ope
 ## What it can do
 
 - Discover and inspect public OVF ArcGIS datasets.
-- Search surface-water stations and shallow-groundwater wells (`--network wells`) by
-  name, municipality, or watercourse.
+- Search surface-water stations, shallow-groundwater wells (`--network wells`),
+  confined/layer-aquifer wells (`--network deep-wells`), and precipitation stations
+  (`--network precipitation`) by name, municipality, or watercourse.
 - Find the nearest stations to WGS84 coordinates.
 - List authoritative measurement codes, units, accepted ranges, and data types.
 - Inspect temporal coverage before requesting observations.

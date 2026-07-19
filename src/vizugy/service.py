@@ -16,7 +16,7 @@ from .models import (
     StationPage,
 )
 from .providers import ArcGISProvider
-from .vra_provider import VRAProvider
+from .vra_provider import NETWORKS, VRAProvider
 
 
 class VizugyService:
@@ -138,12 +138,11 @@ class VizugyService:
 
     async def resolve_station(self, station_query: str) -> Station:
         needle = station_query.casefold()
-        if needle.startswith("well:"):
-            networks = ["wells"]
-        elif needle.startswith("surface:"):
-            networks = ["surface"]
-        else:
-            networks = ["surface", "wells"]
+        matched = next(
+            (name for name, (_, prefix) in NETWORKS.items() if needle.startswith(f"{prefix}:")),
+            None,
+        )
+        networks = [matched] if matched else list(NETWORKS)
         for network in networks:
             items = await self._vra().stations(network)
             exact = [item for item in items if item.id.casefold() == needle]
@@ -166,9 +165,13 @@ class VizugyService:
 
     @staticmethod
     def _network_metric(station: Station, metric: str) -> str:
-        # Wells measure Talajvízállás (69); the surface default would silently return nothing.
-        if station.id.startswith("well:") and metric.casefold() == "water-level":
-            return "groundwater-level"
+        # Wells measure Talajvízállás (69), deep wells Rétegvízszint (70); the
+        # surface default would silently return nothing.
+        if metric.casefold() == "water-level":
+            if station.id.startswith("well:"):
+                return "groundwater-level"
+            if station.id.startswith("deep-well:"):
+                return "layer-water-level"
         return metric
 
     @staticmethod
