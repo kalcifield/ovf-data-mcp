@@ -26,6 +26,9 @@ def station_payload(registry_number: int = 1, **overrides: JsonValue) -> dict[st
         "KF1": 500,
         "KF2": 600,
         "KF3": 650,
+        "Fkm": 1848.4,
+        "LKV": -70,
+        "LNV": 891,
     }
     payload.update(overrides)
     return payload
@@ -94,6 +97,9 @@ async def test_station_networks_map_vmo_codes_and_namespaces(
 
     assert stations[0].id == f"{prefix}:502"
     assert stations[0].thresholds == {"level_1": 500.0, "level_2": 600.0, "level_3": 650.0}
+    assert stations[0].river_km == 1848.4
+    assert stations[0].record_low == -70.0
+    assert stations[0].record_high == 891.0
     assert requests[-1].url.path == path
 
 
@@ -156,7 +162,55 @@ async def test_observations_send_filter_and_map_compact_values() -> None:
         "data_type": "operatív összefésült",
         "value": 51.0,
         "unit": "cm",
+        "quality_code": None,
+        "quality": None,
+        "field_quality_code": None,
+        "field_quality": None,
     }
+
+
+@pytest.mark.asyncio
+async def test_quality_observations_use_long_format_and_decode_codes() -> None:
+    provider, requests = provider_with(
+        {
+            "/Vra/InternetVmo/11/true": [station_payload()],
+            "/Base/AdatFajta": [metric_payload()],
+            "/Base/AdatTipus": [data_type_payload()],
+            "/Base/AdatMinosites": [{"KodAZ": 3, "Nev": "gyanús", "KodSorszam": 3}],
+            "/Base/MezoMinosites": [{"KodAZ": 8, "Nev": "mért adat", "KodSorszam": 8}],
+            "/TS/TsLongList": [
+                {
+                    "ItemId": 0,
+                    "TsItemList": [
+                        {
+                            "UTCTime": "2026-07-17T12:00:00Z",
+                            "Adat": 51.0,
+                            "AMKod": 3,
+                            "MMKod": 8,
+                        }
+                    ],
+                }
+            ],
+        }
+    )
+    try:
+        station = (await provider.stations())[0]
+        observations, _ = await provider.observations(
+            station,
+            "water-level",
+            "operational",
+            datetime(2026, 7, 16, tzinfo=UTC),
+            datetime(2026, 7, 18, tzinfo=UTC),
+            100,
+            include_quality=True,
+        )
+    finally:
+        await provider.close()
+
+    assert not any(item.url.path.endswith("/TS/TsShortList") for item in requests)
+    first = observations[0]
+    assert (first.quality_code, first.quality) == (3, "gyanús")
+    assert (first.field_quality_code, first.field_quality) == (8, "mért adat")
 
 
 @pytest.mark.asyncio

@@ -82,11 +82,17 @@ def build_server() -> FastMCP:
         metric: str = "water-level",
         data_type: str = "operational",
         limit: int = 1000,
+        include_quality: bool = False,
     ) -> dict[str, Any]:
-        """Get raw observations for an explicit interval of at most 7 days."""
+        """Get raw observations for an explicit interval of at most 7 days.
+
+        include_quality: add upstream quality codes and labels per observation.
+        """
         service = create_service()
         try:
-            result = await service.get_observations(station, metric, data_type, start, end, limit)
+            result = await service.get_observations(
+                station, metric, data_type, start, end, limit, include_quality=include_quality
+            )
             return result.model_dump(mode="json")
         finally:
             await service.close()

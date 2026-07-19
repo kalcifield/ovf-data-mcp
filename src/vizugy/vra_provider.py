@@ -8,9 +8,12 @@ from pydantic import TypeAdapter
 
 from ._generated.vra_models import (
     AdatFajta,
+    AdatMinosites,
     AdatTipus,
     DataCatalogMinMax,
     InternetVMO,
+    MezoMinosites,
+    TSLongResponse,
     TSShortItemDTResponseTSListFilter,
     TSShortResponse,
 )
@@ -34,6 +37,9 @@ METRICS_RESPONSE = TypeAdapter(list[AdatFajta])
 DATA_TYPES_RESPONSE = TypeAdapter(list[AdatTipus])
 STATIONS_RESPONSE = TypeAdapter(list[InternetVMO])
 OBSERVATIONS_RESPONSE = TypeAdapter(list[TSShortResponse])
+LONG_OBSERVATIONS_RESPONSE = TypeAdapter(list[TSLongResponse])
+DATA_QUALITY_RESPONSE = TypeAdapter(list[AdatMinosites])
+FIELD_QUALITY_RESPONSE = TypeAdapter(list[MezoMinosites])
 COVERAGE_RESPONSE = TypeAdapter(list[DataCatalogMinMax])
 AGGREGATES_RESPONSE = TypeAdapter(list[TSShortItemDTResponseTSListFilter])
 
@@ -58,6 +64,7 @@ class VRAProvider:
         self._token: str | None = None
         self._metrics: list[dict[str, Any]] | None = None
         self._data_types: list[dict[str, Any]] | None = None
+        self._quality_names: dict[str, dict[int, str]] | None = None
 
     async def close(self) -> None:
         await self.client.aclose()
@@ -104,6 +111,16 @@ class VRAProvider:
             self._data_types = [item.model_dump(mode="json") for item in data_types]
         return self._metrics, self._data_types
 
+    async def quality_names(self) -> dict[str, dict[int, str]]:
+        if self._quality_names is None:
+            data = await self._request("GET", "Base/AdatMinosites", DATA_QUALITY_RESPONSE)
+            field = await self._request("GET", "Base/MezoMinosites", FIELD_QUALITY_RESPONSE)
+            self._quality_names = {
+                "data": {item.KodAZ: item.Nev for item in data if item.KodAZ and item.Nev},
+                "field": {item.KodAZ: item.Nev for item in field if item.KodAZ and item.Nev},
+            }
+        return self._quality_names
+
     async def stations(self, network: str = "surface") -> list[Station]:
         if network not in NETWORKS:
             raise ValueError(f"unknown network: {network}; expected one of: {', '.join(NETWORKS)}")
@@ -121,6 +138,9 @@ class VRAProvider:
                 municipality=item.get("Telepules"),
                 latitude=item["Lat"],
                 longitude=item["Lon"],
+                river_km=item.get("Fkm"),
+                record_low=item.get("LKV"),
+                record_high=item.get("LNV"),
                 thresholds={
                     "level_1": item.get("KF1"),
                     "level_2": item.get("KF2"),
@@ -187,6 +207,7 @@ class VRAProvider:
         start: datetime,
         end: datetime,
         limit: int,
+        include_quality: bool = False,
     ) -> tuple[list[Observation], int]:
         metric = await self.resolve_metric(metric_name)
         data_type = await self.resolve_data_type(data_type_name)
@@ -197,13 +218,21 @@ class VRAProvider:
             "StartTime": start.astimezone(UTC).isoformat(),
             "EndTime": end.astimezone(UTC).isoformat(),
         }
-        response = await self._request("POST", "TS/TsShortList", OBSERVATIONS_RESPONSE, json=body)
+        response: list[TSLongResponse] | list[TSShortResponse]
+        if include_quality:
+            path = "TS/TsLongList"
+            quality = await self.quality_names()
+            response = await self._request("POST", path, LONG_OBSERVATIONS_RESPONSE, json=body)
+        else:
+            path = "TS/TsShortList"
+            quality = {"data": {}, "field": {}}
+            response = await self._request("POST", path, OBSERVATIONS_RESPONSE, json=body)
         data = [item.model_dump(mode="json") for item in response]
         items = data[0].get("TsItemList") or [] if data else []
         total = len(items)
         if total > limit:
             items = items[-limit:]
-        source = f"{self.base_url}/TS/TsShortList"
+        source = f"{self.base_url}/{path}"
         retrieved = datetime.now(UTC).isoformat()
         observations = [
             Observation(
@@ -216,6 +245,10 @@ class VRAProvider:
                 data_type=data_type["Nev"],
                 value=item.get("Adat"),
                 unit=metric.get("Mertekegyseg"),
+                quality_code=item.get("AMKod"),
+                quality=quality["data"].get(item.get("AMKod")),
+                field_quality_code=item.get("MMKod"),
+                field_quality=quality["field"].get(item.get("MMKod")),
                 provenance=Provenance(
                     provider="ovf_vraquery", source_url=source, retrieved_at=retrieved
                 ),

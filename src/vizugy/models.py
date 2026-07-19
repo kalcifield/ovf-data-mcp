@@ -1,6 +1,6 @@
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field as PydanticField
+from pydantic import BaseModel, Field as PydanticField, model_serializer
 
 
 class Provenance(BaseModel):
@@ -55,6 +55,9 @@ class Station(BaseModel):
     latitude: float
     longitude: float
     distance_km: float | None = None
+    river_km: float | None = None
+    record_low: float | None = None
+    record_high: float | None = None
     thresholds: dict[str, float | None] = PydanticField(default_factory=dict)
     provenance: Provenance
     raw: dict[str, Any] = PydanticField(default_factory=dict, exclude=True)
@@ -79,6 +82,10 @@ class Observation(BaseModel):
     data_type: str
     value: float | None = None
     unit: str | None = None
+    quality_code: int | None = None
+    quality: str | None = None
+    field_quality_code: int | None = None
+    field_quality: str | None = None
     provenance: Provenance
     raw: dict[str, Any] = PydanticField(default_factory=dict, exclude=True)
 
@@ -86,6 +93,20 @@ class Observation(BaseModel):
 class ObservationPoint(BaseModel):
     observed_at: str
     value: float | None = None
+    quality_code: int | None = None
+    quality: str | None = None
+    field_quality_code: int | None = None
+    field_quality: str | None = None
+
+    @model_serializer(mode="wrap")
+    def _omit_absent_quality(self, handler: Any) -> Any:
+        # Quality fields exist only when requested; a null "value" is a real gap
+        # and must stay visible, so only the quality keys are dropped when None.
+        data = handler(self)
+        for key in ("quality_code", "quality", "field_quality_code", "field_quality"):
+            if data.get(key) is None:
+                data.pop(key, None)
+        return data
 
 
 class QueryPlan(BaseModel):

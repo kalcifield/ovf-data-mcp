@@ -176,6 +176,9 @@ def get_observations(
     limit: int = typer.Option(1000, min=1, max=1000),
     format: Output = typer.Option(Output.json),
     explain: bool = typer.Option(False, help="Resolve and validate without fetching data."),
+    quality: bool = typer.Option(
+        False, help="Include upstream quality codes and labels per observation."
+    ),
 ) -> None:
     service = create_service()
 
@@ -186,7 +189,13 @@ def get_observations(
                     station, metric, data_type, parse_time(start), parse_time(end)
                 )
             return await service.get_observations(
-                station, metric, data_type, parse_time(start), parse_time(end), limit
+                station,
+                metric,
+                data_type,
+                parse_time(start),
+                parse_time(end),
+                limit,
+                include_quality=quality,
             )
         finally:
             await service.close()

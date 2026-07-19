@@ -39,7 +39,10 @@ The CLI is the primary interface; MCP tools are thin adapters over identical ope
 - Find the nearest stations to WGS84 coordinates.
 - List authoritative measurement codes, units, accepted ranges, and data types.
 - Inspect temporal coverage before requesting observations.
-- Retrieve compact, bounded operational or historical time series.
+- Retrieve compact, bounded operational or historical time series, optionally with
+  upstream quality codes and labels (`--quality`).
+- Report per-station context: flood-alert thresholds, record low/high water levels,
+  and river kilometre where the upstream registry provides them.
 - Aggregate observations upstream by day, ten-day period, month, or year.
 - Explain resolved identifiers and query semantics without fetching values.
 - Return structured provenance and explicit upstream caveats.

@@ -167,13 +167,15 @@ class VizugyService:
 
     @staticmethod
     def _network_metric(station: Station, metric: str) -> str:
-        # Wells measure Talajvízállás (69), deep wells Rétegvízszint (70); the
-        # surface default would silently return nothing.
+        # Network-specific stations do not carry surface water level (68); map the
+        # generic default to their primary metric instead of returning an empty series.
         if metric.casefold() == "water-level":
             if station.id.startswith("well:"):
                 return "groundwater-level"
             if station.id.startswith("deep-well:"):
                 return "layer-water-level"
+            if station.id.startswith("precip:"):
+                return "precipitation"
         return metric
 
     @staticmethod
@@ -255,6 +257,7 @@ class VizugyService:
         start: datetime | None = None,
         end: datetime | None = None,
         limit: int = 1000,
+        include_quality: bool = False,
     ) -> ObservationResult:
         if not 1 <= limit <= 1000:
             raise ValueError("limit must be between 1 and 1000")
@@ -270,6 +273,7 @@ class VizugyService:
             start_dt,
             end_dt,
             limit,
+            include_quality=include_quality,
         )
         plan.will_fetch = True
         provenance = items[0].provenance if items else plan.station.provenance
@@ -277,7 +281,15 @@ class VizugyService:
             station=plan.station,
             query=plan,
             items=[
-                ObservationPoint(observed_at=item.observed_at, value=item.value) for item in items
+                ObservationPoint(
+                    observed_at=item.observed_at,
+                    value=item.value,
+                    quality_code=item.quality_code,
+                    quality=item.quality,
+                    field_quality_code=item.field_quality_code,
+                    field_quality=item.field_quality,
+                )
+                for item in items
             ],
             returned=len(items),
             truncated=total > len(items),
