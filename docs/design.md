@@ -113,3 +113,17 @@ are compact; station-independent query metadata and provenance appear once per r
 6. Generate broader VRAQuery wire clients from OpenAPI; expose documented quality and
    aggregation filters without inventing semantics.
 7. Optional HTTP MCP deployment only if real clients require it.
+
+## Verified VRA soil dimension 2026-07-19
+
+VRA metric 299 is soil moisture (`%`) and 303 is soil temperature (`C°`). Their
+time-series `DataExt` values 10, 20, 30, 45, 60, and 75 correspond to sensor depth in
+centimetres. The documented raw and filtered requests accept `DataExtFilter`; filtered
+queries retain server-side aggregation. Keep `DataExt` generic in the domain model and
+add `depth_cm` only as a verified semantic dimension for these two metrics.
+
+`DataCatalogMinMax` returned soil-moisture coverage for 24 active precipitation-network
+stations, but its live rows did not distinguish `DataExt`. Depth availability therefore
+comes from bounded observation queries, not inferred coverage. The separate drought API
+remains a possible later provider for broader station coverage, HDI, and water-deficit
+variables absent from the VRA metric catalogue.

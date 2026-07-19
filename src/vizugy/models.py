@@ -86,6 +86,8 @@ class Observation(BaseModel):
     quality: str | None = None
     field_quality_code: int | None = None
     field_quality: str | None = None
+    data_ext: int | None = None
+    dimensions: dict[str, int] = PydanticField(default_factory=dict)
     provenance: Provenance
     raw: dict[str, Any] = PydanticField(default_factory=dict, exclude=True)
 
@@ -97,15 +99,25 @@ class ObservationPoint(BaseModel):
     quality: str | None = None
     field_quality_code: int | None = None
     field_quality: str | None = None
+    data_ext: int | None = None
+    dimensions: dict[str, int] = PydanticField(default_factory=dict)
 
     @model_serializer(mode="wrap")
     def _omit_absent_quality(self, handler: Any) -> Any:
         # Quality fields exist only when requested; a null "value" is a real gap
         # and must stay visible, so only the quality keys are dropped when None.
         data = handler(self)
-        for key in ("quality_code", "quality", "field_quality_code", "field_quality"):
+        for key in (
+            "quality_code",
+            "quality",
+            "field_quality_code",
+            "field_quality",
+            "data_ext",
+        ):
             if data.get(key) is None:
                 data.pop(key, None)
+        if not data.get("dimensions"):
+            data.pop("dimensions", None)
         return data
 
 
@@ -118,6 +130,8 @@ class QueryPlan(BaseModel):
     unit: str | None = None
     data_type_code: int
     data_type: str
+    data_ext: int | None = None
+    dimensions: dict[str, int] = PydanticField(default_factory=dict)
     start: str
     end: str
     duration_days: float
@@ -148,5 +162,26 @@ class ObservationResult(BaseModel):
     items: list[ObservationPoint]
     returned: int
     truncated: bool = False
+    provenance: Provenance
+    warnings: list[str] = PydanticField(default_factory=list)
+
+
+class DepthSeries(BaseModel):
+    depth_cm: int
+    items: list[ObservationPoint]
+    returned: int
+
+
+class SoilDepthComparison(BaseModel):
+    station: Station
+    metric_code: int
+    metric: str
+    unit: str | None = None
+    depths_cm: list[int]
+    series: list[DepthSeries]
+    start: str
+    end: str
+    aggregation: dict[str, str]
+    dimension: dict[str, str]
     provenance: Provenance
     warnings: list[str] = PydanticField(default_factory=list)

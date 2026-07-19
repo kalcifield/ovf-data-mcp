@@ -43,6 +43,7 @@ def build_server() -> FastMCP:
         watercourse: str | None = None,
         municipality: str | None = None,
         network: str = "surface",
+        metric: str | None = None,
     ) -> dict[str, Any]:
         """Find gauges by registry ID, name, watercourse, or municipality.
 
@@ -52,14 +53,20 @@ def build_server() -> FastMCP:
         service = create_service()
         try:
             return (
-                await service.find_stations(query, limit, watercourse, municipality, network)
+                await service.find_stations(
+                    query, limit, watercourse, municipality, network, metric
+                )
             ).model_dump(mode="json")
         finally:
             await service.close()
 
     @mcp.tool()
     async def nearest_stations(
-        latitude: float, longitude: float, limit: int = 5, network: str = "surface"
+        latitude: float,
+        longitude: float,
+        limit: int = 5,
+        network: str = "surface",
+        metric: str | None = None,
     ) -> dict[str, Any]:
         """Find public gauges nearest a WGS84 latitude/longitude.
 
@@ -68,9 +75,9 @@ def build_server() -> FastMCP:
         """
         service = create_service()
         try:
-            return (await service.nearest_stations(latitude, longitude, limit, network)).model_dump(
-                mode="json"
-            )
+            return (
+                await service.nearest_stations(latitude, longitude, limit, network, metric)
+            ).model_dump(mode="json")
         finally:
             await service.close()
 
@@ -83,6 +90,8 @@ def build_server() -> FastMCP:
         data_type: str = "operational",
         limit: int = 1000,
         include_quality: bool = False,
+        data_ext: int | None = None,
+        depth_cm: int | None = None,
     ) -> dict[str, Any]:
         """Get raw observations for an explicit interval of at most 7 days.
 
@@ -91,7 +100,15 @@ def build_server() -> FastMCP:
         service = create_service()
         try:
             result = await service.get_observations(
-                station, metric, data_type, start, end, limit, include_quality=include_quality
+                station,
+                metric,
+                data_type,
+                start,
+                end,
+                limit,
+                include_quality=include_quality,
+                data_ext=data_ext,
+                depth_cm=depth_cm,
             )
             return result.model_dump(mode="json")
         finally:
@@ -121,14 +138,53 @@ def build_server() -> FastMCP:
         data_type: str = "operational",
         interval: str = "daily",
         operation: str = "max",
+        data_ext: int | None = None,
+        depth_cm: int | None = None,
     ) -> dict[str, Any]:
         """Aggregate observations server-side over daily, ten-day, monthly, or yearly buckets."""
         service = create_service()
         try:
             result = await service.aggregate_observations(
-                station, metric, data_type, start, end, interval, operation
+                station,
+                metric,
+                data_type,
+                start,
+                end,
+                interval,
+                operation,
+                data_ext,
+                depth_cm,
             )
             return result.model_dump(mode="json")
+        finally:
+            await service.close()
+
+    @mcp.tool()
+    async def compare_soil_depths(
+        station: str,
+        start: datetime,
+        end: datetime,
+        depths_cm: list[int] | None = None,
+        metric: str = "soil-moisture",
+        data_type: str = "operational",
+        interval: str = "daily",
+        operation: str = "avg",
+    ) -> dict[str, Any]:
+        """Compare aligned soil-moisture or temperature series across sensor depths."""
+        service = create_service()
+        try:
+            return (
+                await service.compare_soil_depths(
+                    station,
+                    start,
+                    end,
+                    depths_cm,
+                    metric,
+                    data_type,
+                    interval,
+                    operation,
+                )
+            ).model_dump(mode="json")
         finally:
             await service.close()
 

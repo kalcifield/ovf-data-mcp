@@ -19,4 +19,5 @@ async def test_stdio_server_exposes_intent_tools() -> None:
                 "get_observations",
                 "inspect_coverage",
                 "aggregate_observations",
+                "compare_soil_depths",
             ]

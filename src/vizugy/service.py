@@ -9,11 +9,13 @@ from .errors import NotFoundError, UpstreamError
 from .models import (
     Coverage,
     DatasetDescription,
+    DepthSeries,
     Observation,
     ObservationResult,
     ObservationPoint,
     Page,
     QueryPlan,
+    SoilDepthComparison,
     Station,
     StationPage,
 )
@@ -65,10 +67,15 @@ class VizugyService:
         watercourse: str | None = None,
         municipality: str | None = None,
         network: str = "surface",
+        metric: str | None = None,
     ) -> StationPage:
         if not 1 <= limit <= 1000:
             raise ValueError("limit must be between 1 and 1000")
-        items = await self._vra().stations(network)
+        items = (
+            await self._vra().stations_with_metric(network, metric)
+            if metric
+            else await self._vra().stations(network)
+        )
         if query:
             needle = query.casefold()
             items = [
@@ -102,9 +109,18 @@ class VizugyService:
         )
 
     async def nearest_stations(
-        self, latitude: float, longitude: float, limit: int = 5, network: str = "surface"
+        self,
+        latitude: float,
+        longitude: float,
+        limit: int = 5,
+        network: str = "surface",
+        metric: str | None = None,
     ) -> StationPage:
-        items = await self._vra().stations(network)
+        items = (
+            await self._vra().stations_with_metric(network, metric)
+            if metric
+            else await self._vra().stations(network)
+        )
 
         def distance(item: Station) -> float:
             lat1, lat2 = math.radians(latitude), math.radians(item.latitude)
@@ -209,6 +225,8 @@ class VizugyService:
         data_type: str,
         start: datetime | None,
         end: datetime | None,
+        data_ext: int | None = None,
+        depth_cm: int | None = None,
         *,
         interval: str | None = None,
         operation: str | None = None,
@@ -217,6 +235,7 @@ class VizugyService:
         station = await self.resolve_station(station_query)
         metric = self._network_metric(station, metric)
         metric_item = await self._vra().resolve_metric(metric)
+        data_ext, dimensions = self._resolve_dimension(metric_item, data_ext, depth_cm)
         data_type_item = await self._vra().resolve_data_type(data_type)
         duration = (end - start).total_seconds() / 86400
         warnings: list[str] = []
@@ -234,6 +253,8 @@ class VizugyService:
             unit=metric_item.get("Mertekegyseg"),
             data_type_code=data_type_item["KodAZ"],
             data_type=data_type_item["Nev"],
+            data_ext=data_ext,
+            dimensions=dimensions,
             start=start.astimezone(UTC).isoformat(),
             end=end.astimezone(UTC).isoformat(),
             duration_days=duration,
@@ -258,10 +279,14 @@ class VizugyService:
         end: datetime | None = None,
         limit: int = 1000,
         include_quality: bool = False,
+        data_ext: int | None = None,
+        depth_cm: int | None = None,
     ) -> ObservationResult:
         if not 1 <= limit <= 1000:
             raise ValueError("limit must be between 1 and 1000")
-        plan = await self.explain_observation_query(station_query, metric, data_type, start, end)
+        plan = await self.explain_observation_query(
+            station_query, metric, data_type, start, end, data_ext, depth_cm
+        )
         if plan.duration_days > 7:
             raise ValueError("raw interval exceeds 7 days; use observations aggregate")
         start_dt = datetime.fromisoformat(plan.start)
@@ -274,6 +299,7 @@ class VizugyService:
             end_dt,
             limit,
             include_quality=include_quality,
+            data_ext=plan.data_ext,
         )
         plan.will_fetch = True
         provenance = items[0].provenance if items else plan.station.provenance
@@ -291,6 +317,8 @@ class VizugyService:
                     quality=item.quality,
                     field_quality_code=item.field_quality_code,
                     field_quality=item.field_quality,
+                    data_ext=item.data_ext,
+                    dimensions=item.dimensions,
                 )
                 for item in items
             ],
@@ -342,6 +370,8 @@ class VizugyService:
         end: datetime | None,
         interval: str,
         operation: str,
+        data_ext: int | None = None,
+        depth_cm: int | None = None,
     ) -> ObservationResult:
         intervals = {"daily", "tenday", "monthly", "yearly"}
         operations = {"min", "max", "avg", "sum", "cnt", "mean", "cntday"}
@@ -357,6 +387,8 @@ class VizugyService:
             end,
             interval=interval,
             operation=operation,
+            data_ext=data_ext,
+            depth_cm=depth_cm,
         )
         max_buckets = {
             "daily": plan.duration_days + 2,
@@ -381,6 +413,7 @@ class VizugyService:
                     chunk_end,
                     interval,
                     operation,
+                    plan.data_ext,
                 )
                 chunks += 1
                 return result
@@ -415,9 +448,112 @@ class VizugyService:
             station=plan.station,
             query=plan,
             items=[
-                ObservationPoint(observed_at=item.observed_at, value=item.value) for item in items
+                ObservationPoint(
+                    observed_at=item.observed_at,
+                    value=item.value,
+                    data_ext=item.data_ext,
+                    dimensions=item.dimensions,
+                )
+                for item in items
             ],
             returned=len(items),
+            provenance=provenance,
+            warnings=warnings,
+        )
+
+    @staticmethod
+    def _resolve_dimension(
+        metric: dict[str, Any], data_ext: int | None, depth_cm: int | None
+    ) -> tuple[int | None, dict[str, int]]:
+        if data_ext is not None and depth_cm is not None:
+            raise ValueError("specify either data_ext or depth_cm, not both")
+        if depth_cm is not None:
+            if metric["KodAZ"] not in {299, 303}:
+                raise ValueError("depth_cm is only defined for soil moisture and soil temperature")
+            if depth_cm not in {10, 20, 30, 45, 60, 75}:
+                raise ValueError("depth_cm must be one of: 10, 20, 30, 45, 60, 75")
+            return depth_cm, {"depth_cm": depth_cm}
+        return data_ext, {}
+
+    async def compare_soil_depths(
+        self,
+        station_query: str,
+        start: datetime | None,
+        end: datetime | None,
+        depths_cm: list[int] | None = None,
+        metric: str = "soil-moisture",
+        data_type: str = "operational",
+        interval: str = "daily",
+        operation: str = "avg",
+    ) -> SoilDepthComparison:
+        start, end = self._bounds(start, end)
+        depths = depths_cm or [10, 20, 30, 45, 60, 75]
+        if not depths or len(depths) != len(set(depths)):
+            raise ValueError("depths_cm must contain unique depths")
+        invalid = sorted(set(depths) - {10, 20, 30, 45, 60, 75})
+        if invalid:
+            raise ValueError("depths_cm must use: 10, 20, 30, 45, 60, 75")
+        if interval not in {"daily", "tenday", "monthly", "yearly"}:
+            raise ValueError("invalid aggregation interval")
+        if operation not in {"min", "max", "avg", "sum", "cnt", "mean", "cntday"}:
+            raise ValueError("invalid aggregation operation")
+        duration_days = (end - start).total_seconds() / 86400
+        max_buckets = {
+            "daily": duration_days + 2,
+            "tenday": duration_days / 10 + 2,
+            "monthly": duration_days / 28 + 2,
+            "yearly": duration_days / 365 + 2,
+        }[interval]
+        if max_buckets * len(depths) > 1000:
+            raise ValueError(
+                "depth comparison may exceed 1000 total points; narrow the interval or depths"
+            )
+        station = await self.resolve_station(station_query)
+        by_depth, metric_item = await self._vra().aggregate_depths(
+            station, metric, data_type, start, end, depths, interval, operation
+        )
+        all_items = [item for items in by_depth.values() for item in items]
+        provenance = all_items[0].provenance if all_items else station.provenance
+        missing = [str(depth) for depth in depths if not by_depth[depth]]
+        warnings = []
+        if missing:
+            warnings.append(
+                "No observations in the requested interval at depths (cm): " + ", ".join(missing)
+            )
+        return SoilDepthComparison(
+            station=station,
+            metric_code=metric_item["KodAZ"],
+            metric=metric_item["Nev"],
+            unit=metric_item.get("Mertekegyseg"),
+            depths_cm=depths,
+            series=[
+                DepthSeries(
+                    depth_cm=depth,
+                    items=[
+                        ObservationPoint(
+                            observed_at=item.observed_at,
+                            value=item.value,
+                            data_ext=item.data_ext,
+                            dimensions=item.dimensions,
+                        )
+                        for item in by_depth[depth]
+                    ],
+                    returned=len(by_depth[depth]),
+                )
+                for depth in depths
+            ],
+            start=start.astimezone(UTC).isoformat(),
+            end=end.astimezone(UTC).isoformat(),
+            aggregation={
+                "period": interval,
+                "operation": operation,
+                "performed_by": "upstream",
+            },
+            dimension={
+                "source_field": "DataExt",
+                "interpretation": "depth_cm",
+                "basis": "verified VRA soil-metric behavior",
+            },
             provenance=provenance,
             warnings=warnings,
         )

@@ -44,6 +44,10 @@ The CLI is the primary interface; MCP tools are thin adapters over identical ope
 - Report per-station context: flood-alert thresholds, record low/high water levels,
   and river kilometre where the upstream registry provides them.
 - Aggregate observations upstream by day, ten-day period, month, or year.
+- Query VRA soil moisture and soil temperature by the upstream `DataExt` dimension;
+  for verified soil metrics this is exposed as sensor depth in centimetres.
+- Find stations with documented coverage for a requested metric and compare aligned,
+  upstream-aggregated soil series across 10, 20, 30, 45, 60, and 75 cm depths.
 - Explain resolved identifiers and query semantics without fetching values.
 - Return structured provenance and explicit upstream caveats.
 
@@ -221,6 +225,8 @@ Useful metric aliases:
 - `water-level`
 - `discharge`
 - `water-temperature`
+- `soil-moisture`
+- `soil-temperature`
 
 Useful data-type aliases:
 
@@ -286,6 +292,30 @@ Operations supported by VRAQuery:
 Aggregation buckets follow upstream hydrological/local-day boundaries. Returned bucket
 labels remain UTC timestamps and can precede the requested UTC boundary by an offset.
 
+### 6. Compare soil depths
+
+Find precipitation-network stations with documented soil-moisture coverage, then
+compare upstream daily averages across the six verified sensor depths:
+
+```bash
+vizugy stations nearest 46.91 19.69 \
+  --network precipitation --metric soil-moisture
+
+vizugy observations compare-depths precip:6994 \
+  --start 2026-07-01T00:00:00Z \
+  --end 2026-07-19T00:00:00Z
+```
+
+Raw and general aggregate queries also accept `--data-ext`; `--depth-cm` is the
+validated semantic alias for soil moisture and soil temperature. `DataExt` remains a
+generic upstream dimension because it may mean something else for other metrics.
+
+`DataCatalogMinMax` documents station/metric/data-type coverage, not depth-specific
+coverage. The comparison helper therefore reports empty requested depths from its
+bounded value query. A live probe on 2026-07-19 found soil-moisture coverage at 24 of
+the 428 active VRA precipitation stations; the separate OVF drought-monitoring API has
+wider coverage and computed drought indicators, but is not integrated yet.
+
 ## Dataset discovery
 
 Search the OVF ArcGIS catalogue without knowing folder or layer identifiers:
@@ -316,6 +346,7 @@ vizugy stations nearest
 vizugy observations coverage
 vizugy observations get
 vizugy observations aggregate
+vizugy observations compare-depths
 ```
 
 Machine-readable output goes to stdout; diagnostics go to stderr.
@@ -348,6 +379,7 @@ Available tools:
 | `inspect_coverage` | Check temporal availability before querying |
 | `get_observations` | Retrieve a bounded raw series |
 | `aggregate_observations` | Aggregate a longer series upstream |
+| `compare_soil_depths` | Compare upstream-aggregated soil series by sensor depth |
 
 ## Output semantics
 

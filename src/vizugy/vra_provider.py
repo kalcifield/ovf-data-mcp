@@ -181,6 +181,8 @@ class VRAProvider:
             "groundwater-level": 69,
             "layer-water-level": 70,
             "precipitation": 71,
+            "soil-moisture": 299,
+            "soil-temperature": 303,
         }
         code = aliases.get(value.casefold())
         if code is None and value.isdigit():
@@ -225,6 +227,7 @@ class VRAProvider:
         end: datetime,
         limit: int,
         include_quality: bool = False,
+        data_ext: int | None = None,
     ) -> tuple[list[Observation], int]:
         metric = await self.resolve_metric(metric_name)
         data_type = await self.resolve_data_type(data_type_name)
@@ -235,6 +238,8 @@ class VRAProvider:
             "StartTime": start.astimezone(UTC).isoformat(),
             "EndTime": end.astimezone(UTC).isoformat(),
         }
+        if data_ext is not None:
+            body["DataExtFilter"] = data_ext
         if include_quality:
             path = "TS/TsLongList"
             quality = await self.quality_names()
@@ -267,6 +272,8 @@ class VRAProvider:
                 quality=quality["data"].get(item.get("AMKod")),
                 field_quality_code=item.get("MMKod"),
                 field_quality=quality["field"].get(item.get("MMKod")),
+                data_ext=item.get("DataExt"),
+                dimensions=self._dimensions(metric["KodAZ"], item.get("DataExt")),
                 provenance=Provenance(
                     provider="ovf_vraquery", source_url=source, retrieved_at=retrieved
                 ),
@@ -275,6 +282,22 @@ class VRAProvider:
             for item in items
         ]
         return observations, total
+
+    @staticmethod
+    def _dimensions(metric_code: int, data_ext: int | None) -> dict[str, int]:
+        if metric_code in {299, 303} and data_ext is not None:
+            return {"depth_cm": data_ext}
+        return {}
+
+    async def stations_with_metric(self, network: str, metric_name: str) -> list[Station]:
+        """Return catalogue stations carrying any documented data type for a metric."""
+        stations = await self.stations(network)
+        metric = await self.resolve_metric(metric_name)
+        rows = await self._coverage_rows_for_ids(
+            [station.registry_number for station in stations], metric["KodAZ"], 0
+        )
+        available = {row["Torzsszam"] for row in rows}
+        return [station for station in stations if station.registry_number in available]
 
     async def coverage(self, station: Station, metric_name: str, data_type_name: str) -> Coverage:
         metric = await self.resolve_metric(metric_name)
@@ -332,12 +355,19 @@ class VRAProvider:
     async def _coverage_rows(
         self, station: Station, metric_code: int, data_type_code: int
     ) -> list[dict[str, Any]]:
+        return await self._coverage_rows_for_ids(
+            [station.registry_number], metric_code, data_type_code
+        )
+
+    async def _coverage_rows_for_ids(
+        self, station_ids: list[int], metric_code: int, data_type_code: int
+    ) -> list[dict[str, Any]]:
         response = await self._request(
             "POST",
             "Base/DataCatalogMinMax",
             COVERAGE_RESPONSE,
             params={"hafKod": metric_code, "atKod": data_type_code},
-            json=[station.registry_number],
+            json=station_ids,
         )
         return cast(list[dict[str, Any]], response.raw)
 
@@ -350,25 +380,27 @@ class VRAProvider:
         end: datetime,
         interval: str,
         operation: str,
+        data_ext: int | None = None,
     ) -> list[Observation]:
         metric = await self.resolve_metric(metric_name)
         data_type = await self.resolve_data_type(data_type_name)
+        query_filter: dict[str, Any] = {
+            "FilterID": 1,
+            "AdatFajtaKod": metric["KodAZ"],
+            "AdatTipusKod": data_type["KodAZ"],
+            "StartTime": start.astimezone(UTC).isoformat(),
+            "EndTime": end.astimezone(UTC).isoformat(),
+            "AggregateFilters": {
+                "RangeType": interval,
+                "AggregateType": operation,
+                "AggregateRangePosition": "none",
+            },
+        }
+        if data_ext is not None:
+            query_filter["DataExtFilter"] = data_ext
         body = {
             "TorzsszamList": [station.registry_number],
-            "Filters": [
-                {
-                    "FilterID": 1,
-                    "AdatFajtaKod": metric["KodAZ"],
-                    "AdatTipusKod": data_type["KodAZ"],
-                    "StartTime": start.astimezone(UTC).isoformat(),
-                    "EndTime": end.astimezone(UTC).isoformat(),
-                    "AggregateFilters": {
-                        "RangeType": interval,
-                        "AggregateType": operation,
-                        "AggregateRangePosition": "none",
-                    },
-                }
-            ],
+            "Filters": [query_filter],
         }
         response = await self._request(
             "POST", "TS/TSListFilterShort", AGGREGATES_RESPONSE, json=body
@@ -389,6 +421,8 @@ class VRAProvider:
                 data_type=data_type["Nev"],
                 value=item.get("Adat"),
                 unit=metric.get("Mertekegyseg"),
+                data_ext=item.get("DataExt"),
+                dimensions=self._dimensions(metric["KodAZ"], item.get("DataExt")),
                 provenance=Provenance(
                     provider="ovf_vraquery",
                     source_url=source,
@@ -399,3 +433,77 @@ class VRAProvider:
             )
             for item in items
         ]
+
+    async def aggregate_depths(
+        self,
+        station: Station,
+        metric_name: str,
+        data_type_name: str,
+        start: datetime,
+        end: datetime,
+        depths_cm: list[int],
+        interval: str,
+        operation: str,
+    ) -> tuple[dict[int, list[Observation]], dict[str, Any]]:
+        metric = await self.resolve_metric(metric_name)
+        if metric["KodAZ"] not in {299, 303}:
+            raise ValueError("depth_cm is only defined for soil moisture and soil temperature")
+        data_type = await self.resolve_data_type(data_type_name)
+        filters = [
+            {
+                "FilterID": index,
+                "AdatFajtaKod": metric["KodAZ"],
+                "AdatTipusKod": data_type["KodAZ"],
+                "StartTime": start.astimezone(UTC).isoformat(),
+                "EndTime": end.astimezone(UTC).isoformat(),
+                "DataExtFilter": depth,
+                "AggregateFilters": {
+                    "RangeType": interval,
+                    "AggregateType": operation,
+                    "AggregateRangePosition": "none",
+                },
+            }
+            for index, depth in enumerate(depths_cm, start=1)
+        ]
+        response = await self._request(
+            "POST",
+            "TS/TSListFilterShort",
+            AGGREGATES_RESPONSE,
+            json={"TorzsszamList": [station.registry_number], "Filters": filters},
+        )
+        raw = cast(list[dict[str, Any]], response.raw)
+        source = f"{self.base_url}/TS/TSListFilterShort"
+        retrieved = datetime.now(UTC).isoformat()
+        by_depth: dict[int, list[Observation]] = {depth: [] for depth in depths_cm}
+        filter_depths = {index: depth for index, depth in enumerate(depths_cm, start=1)}
+        for filtered in raw:
+            filter_id = filtered.get("FilterID")
+            depth = filter_depths.get(filter_id) if isinstance(filter_id, int) else None
+            if depth is None:
+                continue
+            station_responses = filtered.get("FilteredResponse") or []
+            items = station_responses[0].get("TsItemList") or [] if station_responses else []
+            by_depth[depth] = [
+                Observation(
+                    station_id=station.id,
+                    station_registry_number=station.registry_number,
+                    observed_at=item["UTCTime"],
+                    metric_code=metric["KodAZ"],
+                    metric=metric["Nev"],
+                    data_type_code=data_type["KodAZ"],
+                    data_type=data_type["Nev"],
+                    value=item.get("Adat"),
+                    unit=metric.get("Mertekegyseg"),
+                    data_ext=item.get("DataExt", depth),
+                    dimensions={"depth_cm": depth},
+                    provenance=Provenance(
+                        provider="ovf_vraquery",
+                        source_url=source,
+                        retrieved_at=retrieved,
+                        upstream_version="OpenAPI v1.0.0",
+                    ),
+                    raw=item,
+                )
+                for item in items
+            ]
+        return by_depth, metric

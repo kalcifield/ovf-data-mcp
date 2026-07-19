@@ -7,6 +7,7 @@ import httpx
 import pytest
 
 from vizugy.errors import UpstreamError
+from vizugy.models import Provenance, Station
 from vizugy.vra_provider import VRAProvider
 
 JsonValue: TypeAlias = None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
@@ -168,7 +169,58 @@ async def test_observations_send_filter_and_map_compact_values() -> None:
         "quality": None,
         "field_quality_code": None,
         "field_quality": None,
+        "data_ext": None,
+        "dimensions": {},
     }
+
+
+@pytest.mark.asyncio
+async def test_soil_observations_preserve_and_filter_data_ext() -> None:
+    soil_metric = {**metric_payload(), "KodAZ": 299, "Nev": "Talajnedvesség", "Mertekegyseg": "%"}
+    provider, requests = provider_with(
+        {
+            "/Base/AdatFajta": [soil_metric],
+            "/Base/AdatTipus": [data_type_payload()],
+            "/TS/TsShortList": [
+                {
+                    "ItemId": 1,
+                    "TsItemList": [
+                        {"UTCTime": "2026-07-17T12:00:00Z", "Adat": 8.45, "DataExt": 10}
+                    ],
+                }
+            ],
+        }
+    )
+    station = Station(
+        id="precip:1",
+        registry_number=1,
+        name="Városföld",
+        latitude=46.87,
+        longitude=19.77,
+        provenance=Provenance(
+            provider="ovf_vraquery",
+            source_url="https://example.test",
+            retrieved_at="2026-07-19T00:00:00Z",
+        ),
+    )
+    try:
+        observations, _ = await provider.observations(
+            station,
+            "soil-moisture",
+            "operational",
+            datetime(2026, 7, 17, tzinfo=UTC),
+            datetime(2026, 7, 18, tzinfo=UTC),
+            100,
+            data_ext=10,
+        )
+    finally:
+        await provider.close()
+
+    request = next(item for item in requests if item.url.path.endswith("/TS/TsShortList"))
+    assert json.loads(request.content)["DataExtFilter"] == 10
+    assert observations[0].data_ext == 10
+    assert observations[0].dimensions == {"depth_cm": 10}
+    assert observations[0].unit == "%"
 
 
 @pytest.mark.asyncio
@@ -347,6 +399,64 @@ async def test_aggregation_sends_bucket_operation_and_maps_response() -> None:
     }
     assert aggregates[0].observed_at == "2026-07-16T22:00:00Z"
     assert aggregates[0].value == 52
+
+
+@pytest.mark.asyncio
+async def test_depth_comparison_uses_one_multi_filter_request() -> None:
+    soil_metric = {**metric_payload(), "KodAZ": 299, "Nev": "Talajnedvesség", "Mertekegyseg": "%"}
+    provider, requests = provider_with(
+        {
+            "/Base/AdatFajta": [soil_metric],
+            "/Base/AdatTipus": [data_type_payload()],
+            "/TS/TSListFilterShort": [
+                {
+                    "FilterID": 1,
+                    "FilteredResponse": [
+                        {
+                            "Torzsszam": 1,
+                            "TsItemList": [
+                                {"UTCTime": "2026-07-16T22:00:00Z", "Adat": 8.4, "DataExt": 10}
+                            ],
+                        }
+                    ],
+                },
+                {"FilterID": 2, "FilteredResponse": []},
+            ],
+        }
+    )
+    station = Station(
+        id="precip:1",
+        registry_number=1,
+        name="Városföld",
+        latitude=46.87,
+        longitude=19.77,
+        provenance=Provenance(
+            provider="ovf_vraquery",
+            source_url="https://example.test",
+            retrieved_at="2026-07-19T00:00:00Z",
+        ),
+    )
+    try:
+        by_depth, metric = await provider.aggregate_depths(
+            station,
+            "soil-moisture",
+            "operational",
+            datetime(2026, 7, 1, tzinfo=UTC),
+            datetime(2026, 7, 19, tzinfo=UTC),
+            [10, 20],
+            "daily",
+            "avg",
+        )
+    finally:
+        await provider.close()
+
+    api_requests = [item for item in requests if item.url.path.endswith("TSListFilterShort")]
+    assert len(api_requests) == 1
+    filters = json.loads(api_requests[0].content)["Filters"]
+    assert [item["DataExtFilter"] for item in filters] == [10, 20]
+    assert by_depth[10][0].dimensions == {"depth_cm": 10}
+    assert by_depth[20] == []
+    assert metric["Mertekegyseg"] == "%"
 
 
 @pytest.mark.asyncio

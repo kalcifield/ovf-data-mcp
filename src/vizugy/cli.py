@@ -15,6 +15,7 @@ from .models import (
     ObservationResult,
     Page,
     QueryPlan,
+    SoilDepthComparison,
     StationPage,
 )
 
@@ -131,13 +132,16 @@ def search_stations(
         "surface",
         help='Station network: "surface", "wells" (shallow groundwater), "deep-wells" (confined/layer aquifer), or "precipitation".',
     ),
+    metric: str | None = typer.Option(None, help="Only stations with documented metric coverage."),
     format: Output = typer.Option(Output.json),
 ) -> None:
     service = create_service()
 
     async def operation() -> StationPage:
         try:
-            return await service.find_stations(query, limit, watercourse, municipality, network)
+            return await service.find_stations(
+                query, limit, watercourse, municipality, network, metric
+            )
         finally:
             await service.close()
 
@@ -153,13 +157,14 @@ def nearest_stations(
         "surface",
         help='Station network: "surface", "wells" (shallow groundwater), "deep-wells" (confined/layer aquifer), or "precipitation".',
     ),
+    metric: str | None = typer.Option(None, help="Only stations with documented metric coverage."),
     format: Output = typer.Option(Output.json),
 ) -> None:
     service = create_service()
 
     async def operation() -> StationPage:
         try:
-            return await service.nearest_stations(latitude, longitude, limit, network)
+            return await service.nearest_stations(latitude, longitude, limit, network, metric)
         finally:
             await service.close()
 
@@ -179,6 +184,10 @@ def get_observations(
     quality: bool = typer.Option(
         False, help="Include upstream quality codes and labels per observation."
     ),
+    data_ext: int | None = typer.Option(None, help="Generic upstream DataExt filter."),
+    depth_cm: int | None = typer.Option(
+        None, help="Soil depth alias; valid only for soil metrics."
+    ),
 ) -> None:
     service = create_service()
 
@@ -186,7 +195,13 @@ def get_observations(
         try:
             if explain:
                 return await service.explain_observation_query(
-                    station, metric, data_type, parse_time(start), parse_time(end)
+                    station,
+                    metric,
+                    data_type,
+                    parse_time(start),
+                    parse_time(end),
+                    data_ext,
+                    depth_cm,
                 )
             return await service.get_observations(
                 station,
@@ -196,6 +211,8 @@ def get_observations(
                 parse_time(end),
                 limit,
                 include_quality=quality,
+                data_ext=data_ext,
+                depth_cm=depth_cm,
             )
         finally:
             await service.close()
@@ -248,6 +265,10 @@ def aggregate_observations(
     operation: str = typer.Option("max", help="min, max, avg, sum, cnt, mean, or cntday."),
     format: Output = typer.Option(Output.json),
     explain: bool = typer.Option(False, help="Resolve and validate without fetching data."),
+    data_ext: int | None = typer.Option(None, help="Generic upstream DataExt filter."),
+    depth_cm: int | None = typer.Option(
+        None, help="Soil depth alias; valid only for soil metrics."
+    ),
 ) -> None:
     """Run documented server-side aggregation over a bounded interval."""
     service = create_service()
@@ -263,6 +284,8 @@ def aggregate_observations(
                     parse_time(end),
                     interval=interval,
                     operation=operation,
+                    data_ext=data_ext,
+                    depth_cm=depth_cm,
                 )
             return await service.aggregate_observations(
                 station,
@@ -272,6 +295,8 @@ def aggregate_observations(
                 parse_time(end),
                 interval,
                 operation,
+                data_ext,
+                depth_cm,
             )
         finally:
             await service.close()
@@ -288,6 +313,40 @@ def aggregate_observations(
         print(json.dumps({"_meta": result.model_dump(mode="json", exclude={"items"})}))
     else:
         print(result.model_dump_json(indent=2))
+
+
+@observations.command("compare-depths")
+def compare_soil_depths(
+    station: str,
+    start: str = typer.Option(..., help="UTC/offset ISO-8601 start."),
+    end: str = typer.Option(..., help="UTC/offset ISO-8601 end."),
+    depths_cm: list[int] | None = typer.Option(
+        None, "--depth-cm", help="Repeat for selected depths; defaults to all six."
+    ),
+    metric: str = typer.Option("soil-moisture", help="soil-moisture or soil-temperature."),
+    data_type: str = typer.Option("operational"),
+    interval: str = typer.Option("daily"),
+    operation: str = typer.Option("avg"),
+) -> None:
+    """Compare aligned, upstream-aggregated soil series by sensor depth."""
+    service = create_service()
+
+    async def execute() -> SoilDepthComparison:
+        try:
+            return await service.compare_soil_depths(
+                station,
+                parse_time(start),
+                parse_time(end),
+                depths_cm,
+                metric,
+                data_type,
+                interval,
+                operation,
+            )
+        finally:
+            await service.close()
+
+    print(run(execute()).model_dump_json(indent=2))
 
 
 if __name__ == "__main__":

@@ -145,3 +145,39 @@ async def test_empty_aggregate_reports_available_data_types() -> None:
     assert "No observations returned for operatív összefésült (101)" in result.warnings[1]
     assert "hidrológiai (9, 1980-09-04" in result.warnings[1]
     assert "--data-type NAME" in result.warnings[1]
+
+
+@pytest.mark.asyncio
+async def test_compare_soil_depths_reports_missing_requested_depth() -> None:
+    app, vra = service()
+    soil = Observation(
+        station_id="surface:2046",
+        station_registry_number=2046,
+        observed_at="2026-07-01T22:00:00Z",
+        metric_code=299,
+        metric="Talajnedvesség",
+        data_type_code=101,
+        data_type="operatív összefésült",
+        value=8.4,
+        unit="%",
+        data_ext=10,
+        dimensions={"depth_cm": 10},
+        provenance=station().provenance,
+    )
+    vra.aggregate_depths.return_value = (
+        {10: [soil], 20: []},
+        {"KodAZ": 299, "Nev": "Talajnedvesség", "Mertekegyseg": "%"},
+    )
+
+    result = await app.compare_soil_depths(
+        "surface:2046",
+        datetime(2026, 7, 1, tzinfo=UTC),
+        datetime(2026, 7, 19, tzinfo=UTC),
+        [10, 20],
+    )
+
+    assert result.unit == "%"
+    assert result.series[0].items[0].dimensions == {"depth_cm": 10}
+    assert result.series[1].items == []
+    assert "20" in result.warnings[0]
+    assert result.aggregation["performed_by"] == "upstream"
