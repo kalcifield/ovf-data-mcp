@@ -40,6 +40,19 @@ def service() -> tuple[VizugyService, AsyncMock]:
     return VizugyService(arcgis, vra), vra
 
 
+@pytest.mark.parametrize(
+    ("station_id", "expected"),
+    [
+        ("surface:2046", "water-level"),
+        ("well:2046", "groundwater-level"),
+        ("deep-well:2046", "layer-water-level"),
+        ("precip:2046", "precipitation"),
+    ],
+)
+def test_default_metric_follows_station_network(station_id: str, expected: str) -> None:
+    assert VizugyService._network_metric(station(station_id), "water-level") == expected
+
+
 @pytest.mark.asyncio
 async def test_explain_resolves_codes_without_fetching_values() -> None:
     app, vra = service()

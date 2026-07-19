@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any, TypeVar
+from typing import Any, Generic, TypeVar, cast
 
 import httpx
-from pydantic import TypeAdapter
+from pydantic import BaseModel, ConfigDict, TypeAdapter
 
 from ._generated.vra_models import (
     AdatFajta,
@@ -32,7 +33,20 @@ NETWORKS = {
 }
 
 T = TypeVar("T")
-TOKEN_RESPONSE = TypeAdapter(dict[str, str])
+
+
+class TokenResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    access_token: str
+
+
+@dataclass(frozen=True)
+class WireResponse(Generic[T]):
+    value: T
+    raw: object
+
+
+TOKEN_RESPONSE = TypeAdapter(TokenResponse)
 METRICS_RESPONSE = TypeAdapter(list[AdatFajta])
 DATA_TYPES_RESPONSE = TypeAdapter(list[AdatTipus])
 STATIONS_RESPONSE = TypeAdapter(list[InternetVMO])
@@ -76,10 +90,12 @@ class VRAProvider:
                 headers={"Origin": "https://data.vizugy.hu", "Referer": "https://data.vizugy.hu/"},
             )
             response.raise_for_status()
-            self._token = TOKEN_RESPONSE.validate_python(response.json())["access_token"]
+            self._token = TOKEN_RESPONSE.validate_python(response.json()).access_token
         return {"Authorization": f"Bearer {self._token}"}
 
-    async def _request(self, method: str, path: str, adapter: TypeAdapter[T], **kwargs: Any) -> T:
+    async def _request(
+        self, method: str, path: str, adapter: TypeAdapter[T], **kwargs: Any
+    ) -> WireResponse[T]:
         try:
             response = await self.client.request(
                 method,
@@ -96,7 +112,8 @@ class VRAProvider:
                     **kwargs,
                 )
             response.raise_for_status()
-            return adapter.validate_python(response.json())
+            raw: object = response.json()
+            return WireResponse(value=adapter.validate_python(raw), raw=raw)
         except (httpx.HTTPError, KeyError, ValueError) as exc:
             # str() of httpx timeout exceptions is often empty; fall back to the class name.
             detail = str(exc) or type(exc).__name__
@@ -104,11 +121,11 @@ class VRAProvider:
 
     async def catalogs(self) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         if self._metrics is None:
-            metrics = await self._request("GET", "Base/AdatFajta", METRICS_RESPONSE)
-            self._metrics = [item.model_dump(mode="json") for item in metrics]
+            metrics_response = await self._request("GET", "Base/AdatFajta", METRICS_RESPONSE)
+            self._metrics = cast(list[dict[str, Any]], metrics_response.raw)
         if self._data_types is None:
-            data_types = await self._request("GET", "Base/AdatTipus", DATA_TYPES_RESPONSE)
-            self._data_types = [item.model_dump(mode="json") for item in data_types]
+            data_types_response = await self._request("GET", "Base/AdatTipus", DATA_TYPES_RESPONSE)
+            self._data_types = cast(list[dict[str, Any]], data_types_response.raw)
         return self._metrics, self._data_types
 
     async def quality_names(self) -> dict[str, dict[int, str]]:
@@ -116,8 +133,8 @@ class VRAProvider:
             data = await self._request("GET", "Base/AdatMinosites", DATA_QUALITY_RESPONSE)
             field = await self._request("GET", "Base/MezoMinosites", FIELD_QUALITY_RESPONSE)
             self._quality_names = {
-                "data": {item.KodAZ: item.Nev for item in data if item.KodAZ and item.Nev},
-                "field": {item.KodAZ: item.Nev for item in field if item.KodAZ and item.Nev},
+                "data": {item.KodAZ: item.Nev for item in data.value if item.KodAZ and item.Nev},
+                "field": {item.KodAZ: item.Nev for item in field.value if item.KodAZ and item.Nev},
             }
         return self._quality_names
 
@@ -126,7 +143,7 @@ class VRAProvider:
             raise ValueError(f"unknown network: {network}; expected one of: {', '.join(NETWORKS)}")
         vmo_type, prefix = NETWORKS[network]
         response = await self._request("GET", f"Vra/InternetVmo/{vmo_type}/true", STATIONS_RESPONSE)
-        data = [item.model_dump(mode="json") for item in response]
+        data = cast(list[dict[str, Any]], response.raw)
         source = f"{self.base_url}/Vra/InternetVmo/{vmo_type}/true"
         retrieved = datetime.now(UTC).isoformat()
         return [
@@ -218,16 +235,17 @@ class VRAProvider:
             "StartTime": start.astimezone(UTC).isoformat(),
             "EndTime": end.astimezone(UTC).isoformat(),
         }
-        response: list[TSLongResponse] | list[TSShortResponse]
         if include_quality:
             path = "TS/TsLongList"
             quality = await self.quality_names()
-            response = await self._request("POST", path, LONG_OBSERVATIONS_RESPONSE, json=body)
+            long_response = await self._request("POST", path, LONG_OBSERVATIONS_RESPONSE, json=body)
+            raw_response = long_response.raw
         else:
             path = "TS/TsShortList"
             quality = {"data": {}, "field": {}}
-            response = await self._request("POST", path, OBSERVATIONS_RESPONSE, json=body)
-        data = [item.model_dump(mode="json") for item in response]
+            short_response = await self._request("POST", path, OBSERVATIONS_RESPONSE, json=body)
+            raw_response = short_response.raw
+        data = cast(list[dict[str, Any]], raw_response)
         items = data[0].get("TsItemList") or [] if data else []
         total = len(items)
         if total > limit:
@@ -270,7 +288,7 @@ class VRAProvider:
                 params={"hafKod": metric["KodAZ"], "atKod": type_code},
                 json=[station.registry_number],
             )
-            return [item.model_dump(mode="json") for item in response]
+            return cast(list[dict[str, Any]], response.raw)
 
         rows = await request(data_type["KodAZ"])
         warnings: list[str] = []
@@ -335,7 +353,7 @@ class VRAProvider:
         response = await self._request(
             "POST", "TS/TSListFilterShort", AGGREGATES_RESPONSE, json=body
         )
-        data = [item.model_dump(mode="json") for item in response]
+        data = cast(list[dict[str, Any]], response.raw)
         responses = data[0].get("FilteredResponse") or [] if data else []
         items = responses[0].get("TsItemList") or [] if responses else []
         source = f"{self.base_url}/TS/TSListFilterShort"

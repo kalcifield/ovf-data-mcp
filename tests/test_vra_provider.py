@@ -89,7 +89,8 @@ async def test_station_networks_map_vmo_codes_and_namespaces(
     network: str, vmo_code: int, prefix: str
 ) -> None:
     path = f"/Vra/InternetVmo/{vmo_code}/true"
-    provider, requests = provider_with({path: [station_payload(502)]})
+    payload = station_payload(502)
+    provider, requests = provider_with({path: [payload]})
     try:
         stations = await provider.stations(network)
     finally:
@@ -100,6 +101,7 @@ async def test_station_networks_map_vmo_codes_and_namespaces(
     assert stations[0].river_km == 1848.4
     assert stations[0].record_low == -70.0
     assert stations[0].record_high == 891.0
+    assert stations[0].raw == payload
     assert requests[-1].url.path == path
 
 
@@ -306,13 +308,14 @@ async def test_catalogs_are_cached() -> None:
         {"/Base/AdatFajta": [metric_payload()], "/Base/AdatTipus": [data_type_payload()]}
     )
     try:
-        await provider.catalogs()
-        await provider.catalogs()
+        first = await provider.catalogs()
+        second = await provider.catalogs()
     finally:
         await provider.close()
 
     catalog_paths = [item.url.path for item in requests if item.url.path.startswith("/Base/")]
     assert catalog_paths == ["/Base/AdatFajta", "/Base/AdatTipus"]
+    assert first == second == ([metric_payload()], [data_type_payload()])
 
 
 @pytest.mark.asyncio
@@ -325,7 +328,10 @@ async def test_unauthorized_response_refreshes_token_once() -> None:
         nonlocal api_count, token_count
         if request.url.path == "/token":
             token_count += 1
-            return httpx.Response(200, json={"access_token": f"token-{token_count}"})
+            return httpx.Response(
+                200,
+                json={"access_token": f"token-{token_count}", "expires_in": 3600},
+            )
         api_count += 1
         authorizations.append(request.headers["Authorization"])
         if api_count == 1:

@@ -21,7 +21,7 @@ uv run ovf-data-mcp               # start the stdio MCP server
 uv run pytest -q                  # run deterministic tests and MCP smoke tests
 uv run ruff format --check src tests
 uv run ruff check src tests
-uv run ty check src tests
+uv run mypy src tests
 ```
 
 Run `uv run pre-commit run --all-files` before submitting broad changes.

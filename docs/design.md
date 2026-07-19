@@ -56,6 +56,11 @@ OpenAPI schema; `vra_provider` retains transport policy and maps them into curat
 domain DTOs. `service` owns intent operations and bounds. CLI and MCP call only
 `service`.
 
+Generated wire models follow the schema's closed-object contracts. Additive upstream
+fields therefore fail validation as `UpstreamError`; recovery is an intentional schema
+re-pin, model regeneration, and contract-test review. Provider `raw` values retain the
+original parsed JSON rather than the normalized Pydantic serialization.
+
 Errors: retry transport failures and 429/5xx twice with short exponential backoff;
 never retry validation/not-found; emit no partial success without explicit truncation.
 Cache metadata for five minutes in-process. Later use conditional requests and an
