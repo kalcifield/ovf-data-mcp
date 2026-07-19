@@ -141,6 +141,16 @@ class QueryPlan(BaseModel):
     will_fetch: bool = False
     warnings: list[str] = PydanticField(default_factory=list)
 
+    @model_serializer(mode="wrap")
+    def _omit_absent_dimension(self, handler: Any) -> Any:
+        # The DataExt dimension applies to few metrics; keep other plans compact.
+        data = handler(self)
+        if data.get("data_ext") is None:
+            data.pop("data_ext", None)
+        if not data.get("dimensions"):
+            data.pop("dimensions", None)
+        return data
+
 
 class Coverage(BaseModel):
     station: Station

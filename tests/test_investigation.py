@@ -66,6 +66,8 @@ async def test_explain_resolves_codes_without_fetching_values() -> None:
     assert plan.station_id == "surface:2046"
     assert plan.metric_code == 68
     assert plan.will_fetch is False
+    assert "data_ext" not in plan.model_dump()
+    assert "dimensions" not in plan.model_dump()
     vra.observations.assert_not_called()
 
 
