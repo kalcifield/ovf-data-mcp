@@ -197,3 +197,34 @@ async def test_protected_arcgis_folder_fails_fast_without_retries() -> None:
         assert len(folder_attempts) == 1  # deterministic auth error: no retries
     finally:
         await provider.close()
+
+
+@pytest.mark.asyncio
+async def test_depth_comparison_cap_reports_estimate_before_upstream_call() -> None:
+    from datetime import UTC, datetime
+
+    from vizugy.vra_provider import VRAProvider
+
+    attempts: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        attempts.append(request.url.path)
+        return httpx.Response(500)
+
+    vra = VRAProvider("https://api.test", "https://auth.test/token")
+    vra.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    service = VizugyService(provider_with({}), vra)
+    try:
+        with pytest.raises(ValueError) as excinfo:
+            await service.compare_soil_depths(
+                "precip:1",
+                datetime(2026, 1, 1, tzinfo=UTC),
+                datetime(2026, 7, 20, tzinfo=UTC),
+            )
+        message = str(excinfo.value)
+        assert "1000-point client-side cap" in message
+        assert "6 depths" in message  # names the multiplier that caused it
+        assert "200 days" in message
+        assert not attempts  # bound is pre-flight: OVF is never contacted
+    finally:
+        await service.close()

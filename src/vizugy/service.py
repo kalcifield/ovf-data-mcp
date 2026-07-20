@@ -398,7 +398,13 @@ class VizugyService:
             "yearly": plan.duration_days / 365 + 2,
         }[interval]
         if max_buckets > 1000:
-            raise ValueError("aggregation may exceed 1000 buckets; narrow the interval")
+            raise ValueError(
+                f"{interval} aggregation over {plan.duration_days:.0f} days would request "
+                f"~{max_buckets:.0f} buckets, above the 1000-bucket client-side cap; "
+                f"shorten the interval or use a coarser period. This bound is estimated from "
+                f"the requested span before any upstream call, so it applies even when the "
+                f"station has fewer readings."
+            )
         chunks = 0
 
         async def fetch(
@@ -504,7 +510,11 @@ class VizugyService:
         }[interval]
         if max_buckets * len(depths) > 1000:
             raise ValueError(
-                "depth comparison may exceed 1000 total points; narrow the interval or depths"
+                f"{interval} comparison over {duration_days:.0f} days at {len(depths)} depths "
+                f"would request ~{max_buckets * len(depths):.0f} points, above the 1000-point "
+                f"client-side cap; shorten the interval, pass fewer --depth-cm values, or use a "
+                f"coarser period. This bound is estimated from the requested span before any "
+                f"upstream call, so it applies even when the station has fewer readings."
             )
         station = await self.resolve_station(station_query)
         by_depth, metric_item = await self._vra().aggregate_depths(
