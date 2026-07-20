@@ -79,7 +79,8 @@
         <p><strong>Egyetlen mérőállomás talajszelvénye</strong> a Duna–Tisza köze
            homokhátságán: Városföld, Kecskeméttől 10 km-re délre. Hat érzékelőmélység
            (10–75 cm), a 2026-os aszályév napról napra, a 2022-es rekordaszály ugyanezen
-           időszakával összevetve. 2026 minden mélységben nedvesebben indult, mint 2022,
+           időszakával összevetve. Januárban a két év még vegyesen áll egymáshoz képest,
+           februárra viszont 2026 <em>minden</em> mélységben nedvesebb lett, mint 2022,
            mégis <strong>május végére a felső talajréteg szárazabb lett, mint a 2022-es
            aszály mélypontján</strong>. Nyilvános OVF-adatok az
            <a href="https://github.com/kalcifield/ovf-data-mcp">ovf-data-mcp</a>
@@ -107,7 +108,7 @@
     <div class="tile">
       <div class="label">Téli maximum</div>
       <div class="value">38,7<small> %</small></div>
-      <div class="sub">febr. 5., 30 cm — 2026 nedvesebben indult, mint 2022</div>
+      <div class="sub">febr. 5., 30 cm — a téli feltöltődés 2026-ban volt nagyobb</div>
     </div>
     <div class="tile">
       <div class="label">75 cm mélyen most</div>
@@ -118,10 +119,10 @@
 
   <div class="card">
     <h2>A kiszáradás terjedése a talajszelvényben — 2026 és 2022, január–július</h2>
-    <p class="sub">Soronként egy érzékelőmélység · naponkénti felszíni (upstream) átlag ·
-       világos = száraz, sötét = nedves · egérrel az értékekhez</p>
+    <p class="sub">Soronként egy érzékelőmélység · minden nap a 2026-os és a 2022-es érték
+       különbsége ugyanazon a naptári napon · egérrel a nyers értékekhez</p>
     <svg id="heat" tabindex="0" role="img"
-         aria-label="Két hőtérkép egymás alatt: a 2026-os és a 2022-es év január–júliusi talajnedvessége hat mélységben a városföldi állomáson. 2026 telén minden réteg sötét, azaz nedves, majd május végétől a felső rétegek világosabbra, azaz szárazabbra váltanak, mint 2022 ugyanezen napjain. A teljes adatsor az alábbi táblázatban található."></svg>
+         aria-label="Hőtérkép: soronként egy érzékelőmélység 10 és 75 cm között, oszloponként egy nap január és július között. A szín a 2026-os és a 2022-es talajnedvesség különbsége ugyanazon a napon: vörös azt jelenti, hogy 2026 szárazabb volt, kék azt, hogy nedvesebb. A felső rétegek áprilistól fordulnak vörösbe, 20 cm-en május 25-től már nem tér vissza a nedvesebb állapot, a 75 cm-es réteg viszont végig nedvesebb marad 2022-nél. A teljes adatsor az alábbi táblázatban található."></svg>
     <div class="tooltip" id="heattip"></div>
   </div>
 
@@ -211,13 +212,13 @@ for (const yr of ["2026", "2022"]) {
 const fmt = v => v == null ? "—" : v.toLocaleString("hu-HU", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const mdLabel = md => { const [m, d] = md.split("-").map(Number); return MONTH_NAMES[m - 1] + " " + d + "."; };
 
-// szekvenciális kék skála (világos = száraz, sötét = nedves), 5–40 %
-const RAMP = ["#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95", "#0d366b"];
-const DOM = [5, 40];
-function rampColor(v) {
-  const t = Math.max(0, Math.min(1, (v - DOM[0]) / (DOM[1] - DOM[0])));
-  const x = t * (RAMP.length - 1), i = Math.min(RAMP.length - 2, Math.floor(x)), f = x - i;
-  const c1 = RAMP[i], c2 = RAMP[i + 1];
+// divergens skála: vörös = 2026 szárazabb, kék = nedvesebb, mint 2022 ugyanaznap
+const DIV_RAMP = ["#8c2f1f", "#b4402f", "#d98570", "#f2e6e2", "#dbe7f6", "#6da7ec", "#256abf"];
+const DDOM = 15;  // ±15 pp; a szélsőértékek (−22 pp) levágva, hogy a közép ne mosódjon el
+function diffColor(v) {
+  const t = Math.max(0, Math.min(1, (v + DDOM) / (2 * DDOM)));
+  const x = t * (DIV_RAMP.length - 1), i = Math.min(DIV_RAMP.length - 2, Math.floor(x)), f = x - i;
+  const c1 = DIV_RAMP[i], c2 = DIV_RAMP[i + 1];
   const hx = (c, k) => parseInt(c.slice(1 + 2 * k, 3 + 2 * k), 16);
   const ch = k => Math.round(hx(c1, k) + (hx(c2, k) - hx(c1, k)) * f);
   return "rgb(" + ch(0) + "," + ch(1) + "," + ch(2) + ")";
@@ -238,66 +239,96 @@ function txt(parent, x, y, s, attrs) {
 const monthStarts = [];
 { let acc = 0; for (let m = 0; m < 7; m++) { monthStarts.push(acc); acc += MONTH_DAYS[m]; } }
 
-// ---- hőtérkép ----
+// ---- hőtérkép: 2026 mínusz 2022, mélységenként ----
+// Abszolút nedvességet nem lehet mélységek között összevetni (más talaj, más
+// kalibráció, és nincs hervadáspont/vízkapacitás adat a normalizáláshoz), ezért minden
+// sor csak önmagával, a 2022-es aszály ugyanazon napjával van összemérve.
 const CROSS_MD = "05-25";
+const DIFF = DEPTHS.map((dep, r) => {
+  const row = new Array(N).fill(null);
+  for (let i = 0; i < N; i++) {
+    const a = grid["2026"][r][i], b = grid["2022"][r][i];
+    if (a != null && b != null) row[i] = a - b;
+  }
+  return row;
+});
+// Az a nap, ami után már egyetlen nap sem nedvesebb 2022-nél (— ha nincs ilyen).
+const FINAL = DIFF.map(row => {
+  for (let i = 0; i < N; i++) {
+    if (row[i] == null) continue;
+    let ok = true;
+    for (let j = i; j < N; j++) if (row[j] != null && row[j] >= 0) { ok = false; break; }
+    if (ok) return i;
+  }
+  return null;
+});
 (function heatmap() {
-  const W = 1000, ML = 92, MR = 16, rowH = 22, blockGap = 46, top = 26, legendH = 56;
+  const W = 1000, ML = 92, MR = 16, rowH = 30, top = 34, legendH = 58;
   const iw = W - ML - MR, cw = iw / N;
   const blockH = DEPTHS.length * rowH;
-  const H = top + 2 * blockH + blockGap + 30 + legendH;
+  const H = top + blockH + 30 + legendH;
   const svg = document.getElementById("heat");
   svg.setAttribute("viewBox", "0 0 " + W + " " + H);
 
-  const blocks = [["2026", top], ["2022", top + blockH + blockGap]];
-  for (const [yr, y0] of blocks) {
-    txt(svg, ML, y0 - 8, yr, { "font-weight": 650, "font-size": 14, fill: "var(--text-primary)" });
-    DEPTHS.forEach((dep, r) => {
-      txt(svg, ML - 8, y0 + r * rowH + rowH / 2 + 4, dep + " cm", { "text-anchor": "end" });
-      const row = grid[yr][r];
-      for (let i = 0; i < N; i++) {
-        el(svg, "rect", {
-          x: ML + i * cw, y: y0 + r * rowH, width: cw + 0.5, height: rowH - 1,
-          fill: row[i] == null ? "var(--grid)" : rampColor(row[i]),
-          "data-yr": yr, "data-r": r, "data-i": i
-        });
-      }
-    });
-    // hónap-tengely a blokk alatt
-    for (let m = 0; m < 7; m++) {
-      const x = ML + monthStarts[m] * cw;
-      el(svg, "line", { x1: x, y1: y0, x2: x, y2: y0 + blockH, stroke: "var(--surface-1)", "stroke-width": 1 });
-      txt(svg, x + 2, y0 + blockH + 14, MONTH_NAMES[m]);
+  DEPTHS.forEach((dep, r) => {
+    txt(svg, ML - 8, top + r * rowH + rowH / 2 + 4, dep + " cm", { "text-anchor": "end" });
+    for (let i = 0; i < N; i++) {
+      el(svg, "rect", {
+        x: ML + i * cw, y: top + r * rowH, width: cw + 0.5, height: rowH - 1,
+        fill: DIFF[r][i] == null ? "var(--grid)" : diffColor(DIFF[r][i]),
+        "data-r": r, "data-i": i
+      });
     }
+    // mélységenkénti végleges átfordulás
+    if (FINAL[r] != null) {
+      const fx = ML + (FINAL[r] + 0.5) * cw;
+      el(svg, "line", { x1: fx, y1: top + r * rowH, x2: fx, y2: top + (r + 1) * rowH - 1,
+                        stroke: "var(--text-primary)", "stroke-width": 1.5 });
+      txt(svg, fx + 4, top + r * rowH + 12, mdLabel(MDS[FINAL[r]]),
+          { "font-size": 10.5, fill: "var(--text-primary)", stroke: "#fcfcfb",
+            "stroke-width": 3, "paint-order": "stroke" });
+    } else {
+      // FINAL == null csak annyit jelent, hogy nincs végleges átfordulás; attól még
+      // lehetett a réteg időszakosan szárazabb, mint 2022-ben.
+      const alwaysWetter = DIFF[r].every(v => v == null || v > 0);
+      txt(svg, ML + iw - 4, top + r * rowH + rowH / 2 + 4,
+          alwaysWetter ? "végig nedvesebb maradt" : "nem fordult át véglegesen",
+          { "text-anchor": "end", "font-size": 10.5, fill: "var(--text-secondary)",
+            stroke: "#fcfcfb", "stroke-width": 3, "paint-order": "stroke" });
+    }
+  });
+  for (let m = 0; m < 7; m++) {
+    const x = ML + monthStarts[m] * cw;
+    el(svg, "line", { x1: x, y1: top, x2: x, y2: top + blockH, stroke: "var(--surface-1)", "stroke-width": 1 });
+    txt(svg, x + 2, top + blockH + 14, MONTH_NAMES[m]);
   }
-  // átfordulás-jelölő a 2026-os blokkon
-  const cx = ML + (IDX.get(CROSS_MD) + 0.5) * (iw / N);
-  el(svg, "line", { x1: cx, y1: top - 4, x2: cx, y2: top + blockH + 4, stroke: "var(--text-primary)", "stroke-width": 1, "stroke-dasharray": "3 3" });
-  txt(svg, cx + 5, top + 12, "máj. 25. — szárazabb, mint 2022", { "font-size": 11.5, fill: "var(--text-primary)" });
+  txt(svg, ML, top - 12, "fekete vonal = ettől a naptól már nem lett újra nedvesebb, mint 2022-ben",
+      { "font-size": 11, fill: "var(--text-secondary)" });
 
-  // színskála-jelmagyarázat
-  const ly = H - legendH + 18, lw = 260;
+  // divergens jelmagyarázat
+  const ly = H - legendH + 18, lw = 300;
   const defs = el(svg, "defs", {});
-  const grad = el(defs, "linearGradient", { id: "ramp", x1: 0, y1: 0, x2: 1, y2: 0 });
-  RAMP.forEach((c, i) => el(grad, "stop", { offset: (i / (RAMP.length - 1) * 100) + "%", "stop-color": c }));
-  el(svg, "rect", { x: ML, y: ly, width: lw, height: 10, rx: 3, fill: "url(#ramp)" });
-  txt(svg, ML, ly - 6, "napi átlagos talajnedvesség (%)");
-  txt(svg, ML, ly + 24, "≤ " + DOM[0], { "font-size": 11 });
-  txt(svg, ML + lw, ly + 24, "≥ " + DOM[1], { "text-anchor": "end", "font-size": 11 });
+  const grad = el(defs, "linearGradient", { id: "dramp", x1: 0, y1: 0, x2: 1, y2: 0 });
+  DIV_RAMP.forEach((c, i) => el(grad, "stop", { offset: (i / (DIV_RAMP.length - 1) * 100) + "%", "stop-color": c }));
+  el(svg, "rect", { x: ML, y: ly, width: lw, height: 10, rx: 3, fill: "url(#dramp)" });
+  txt(svg, ML, ly - 6, "2026 és 2022 különbsége ugyanazon a napon (százalékpont)");
+  txt(svg, ML, ly + 24, "≤ −" + DDOM + " (szárazabb)", { "font-size": 11 });
+  txt(svg, ML + lw / 2, ly + 24, "0", { "text-anchor": "middle", "font-size": 11 });
+  txt(svg, ML + lw, ly + 24, "≥ +" + DDOM + " (nedvesebb)", { "text-anchor": "end", "font-size": 11 });
   txt(svg, ML + lw + 16, ly + 9, "szürke = nincs adat", { "font-size": 11, fill: "var(--text-muted)" });
 
-  // tooltip
   const tip = document.getElementById("heattip");
   svg.addEventListener("pointermove", ev => {
     const t = ev.target;
     if (!(t instanceof SVGRectElement) || t.dataset.i === undefined) { tip.style.display = "none"; return; }
-    const yr = t.dataset.yr, r = +t.dataset.r, i = +t.dataset.i;
-    const other = yr === "2026" ? "2022" : "2026";
+    const r = +t.dataset.r, i = +t.dataset.i, d = DIFF[r][i];
     tip.innerHTML =
-      '<div class="date">' + yr + ". " + mdLabel(MDS[i]) + " · " + DEPTHS[r] + " cm</div>" +
-      '<div class="row"><span class="key' + (yr === "2022" ? " ref" : "") + '"></span><span class="name">' + yr + '</span><span class="val">' + fmt(grid[yr][r][i]) + ' %</span></div>' +
-      '<div class="row"><span class="key' + (other === "2022" ? " ref" : "") + '"></span><span class="name">' + other + ' ugyanekkor</span><span class="val">' + fmt(grid[other][r][i]) + ' %</span></div>';
+      '<div class="date">' + mdLabel(MDS[i]) + " · " + DEPTHS[r] + " cm</div>" +
+      '<div class="row"><span class="key"></span><span class="name">2026</span><span class="val">' + fmt(grid["2026"][r][i]) + ' %</span></div>' +
+      '<div class="row"><span class="key ref"></span><span class="name">2022</span><span class="val">' + fmt(grid["2022"][r][i]) + ' %</span></div>' +
+      '<div class="row"><span class="name">különbség</span><span class="val">' + (d == null ? "—" : (d > 0 ? "+" : "") + fmt(d) + " pp") + '</span></div>';
     tip.style.display = "block";
-    const box = svg.getBoundingClientRect(), card = svg.parentElement.getBoundingClientRect();
+    const card = svg.parentElement.getBoundingClientRect();
     tip.style.left = Math.min(ev.clientX - card.left + 14, card.width - tip.offsetWidth - 8) + "px";
     tip.style.top = (ev.clientY - card.top - tip.offsetHeight - 12) + "px";
   });
