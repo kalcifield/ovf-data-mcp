@@ -30,6 +30,42 @@ discover → resolve stations → inspect coverage → explain query → retriev
 The same application logic is exposed through a composable CLI and a local MCP server.
 The CLI is the primary interface; MCP tools are thin adapters over identical operations.
 
+## Installation
+
+Install [`uv`](https://docs.astral.sh/uv/), then choose the CLI or an MCP client.
+
+### CLI
+
+Install both `vizugy` and `ovf-data-mcp` as isolated global tools:
+
+```bash
+uv tool install ovf-data-mcp
+vizugy --help
+```
+
+Run the CLI without installing it:
+
+```bash
+uvx --from ovf-data-mcp vizugy --help
+```
+
+### MCP clients
+
+Claude Code:
+
+```bash
+claude mcp add --scope user ovf-data -- uvx ovf-data-mcp
+```
+
+Codex CLI and IDE extension:
+
+```bash
+codex mcp add ovf-data -- uvx ovf-data-mcp
+```
+
+Editor one-click installs and manual configuration are in
+[MCP server](#mcp-server).
+
 ## What it can do
 
 - Discover and inspect public OVF ArcGIS datasets.
@@ -114,91 +150,6 @@ All examples with previews: **[kalcifield.github.io/ovf-data-mcp](https://kalcif
 
 Operational observations may be preliminary or unchecked. For official proceedings or
 guaranteed checked data, follow OVF's formal data-request process.
-
-## Installation
-
-Install [`uv`](https://docs.astral.sh/uv/), then choose the CLI or an MCP client.
-
-### CLI
-
-Install both `vizugy` and `ovf-data-mcp` as isolated global tools:
-
-```bash
-uv tool install ovf-data-mcp
-vizugy --help
-```
-
-Run the CLI without installing it:
-
-```bash
-uvx --from ovf-data-mcp vizugy --help
-```
-
-### MCP clients
-
-Claude Code:
-
-```bash
-claude mcp add --scope user ovf-data -- uvx ovf-data-mcp
-```
-
-Codex CLI and IDE extension:
-
-```bash
-codex mcp add ovf-data -- uvx ovf-data-mcp
-```
-
-One-click editor installation:
-
-| Client | Install |
-|---|---|
-| VS Code | [![Install on VS Code](https://img.shields.io/badge/Install_on-VS_Code-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect/mcp/install?name=ovf-data&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22ovf-data-mcp%22%5D%7D) |
-| Cursor | [![Install MCP Server](https://cursor.com/deeplink/mcp-install-light.svg)](https://cursor.com/en/install-mcp?name=ovf-data&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyJvdmYtZGF0YS1tY3AiXX0=) |
-
-Generic stdio configuration for Cursor and other MCP clients:
-
-```json
-{
-  "mcpServers": {
-    "ovf-data": {
-      "command": "uvx",
-      "args": ["ovf-data-mcp"]
-    }
-  }
-}
-```
-
-<details>
-<summary>Manual VS Code configuration</summary>
-
-Add this to your user configuration or `.vscode/mcp.json`:
-
-```json
-{
-  "servers": {
-    "ovf-data": {
-      "type": "stdio",
-      "command": "uvx",
-      "args": ["ovf-data-mcp"]
-    }
-  }
-}
-```
-
-</details>
-
-<details>
-<summary>Manual Codex configuration</summary>
-
-Add this to `~/.codex/config.toml`:
-
-```toml
-[mcp_servers.ovf-data]
-command = "uvx"
-args = ["ovf-data-mcp"]
-```
-
-</details>
 
 ## Quick investigation
 
@@ -389,7 +340,8 @@ Machine-readable output goes to stdout; diagnostics go to stderr.
 
 ## MCP server
 
-MCP clients launch the local stdio server automatically using the configurations above.
+MCP clients launch the local stdio server automatically using the commands in
+[Installation](#installation) or the configurations at the end of this section.
 To start it directly:
 
 ```bash
@@ -409,6 +361,58 @@ Available tools:
 | `get_observations` | Retrieve a bounded raw series |
 | `aggregate_observations` | Aggregate a longer series upstream |
 | `compare_soil_depths` | Compare upstream-aggregated soil series by sensor depth |
+
+One-click editor installation:
+
+| Client | Install |
+|---|---|
+| VS Code | [![Install on VS Code](https://img.shields.io/badge/Install_on-VS_Code-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect/mcp/install?name=ovf-data&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22ovf-data-mcp%22%5D%7D) |
+| Cursor | [![Install MCP Server](https://cursor.com/deeplink/mcp-install-light.svg)](https://cursor.com/en/install-mcp?name=ovf-data&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyJvdmYtZGF0YS1tY3AiXX0=) |
+
+Generic stdio configuration for Cursor and other MCP clients:
+
+```json
+{
+  "mcpServers": {
+    "ovf-data": {
+      "command": "uvx",
+      "args": ["ovf-data-mcp"]
+    }
+  }
+}
+```
+
+<details>
+<summary>Manual VS Code configuration</summary>
+
+Add this to your user configuration or `.vscode/mcp.json`:
+
+```json
+{
+  "servers": {
+    "ovf-data": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["ovf-data-mcp"]
+    }
+  }
+}
+```
+
+</details>
+
+<details>
+<summary>Manual Codex configuration</summary>
+
+Add this to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.ovf-data]
+command = "uvx"
+args = ["ovf-data-mcp"]
+```
+
+</details>
 
 ## Output semantics
 
@@ -458,6 +462,9 @@ scripts/generate-vra-models
 
 Design decisions, verified upstream behavior, and unresolved questions are documented
 in [`docs/design.md`](docs/design.md) and [`docs/phase-2-review.md`](docs/phase-2-review.md).
+Observed upstream limits — aggregation timeouts under load, catalogued-but-dead
+stations, and which comparisons the data actually supports — are in
+[`docs/ovf-service-behavior.md`](docs/ovf-service-behavior.md).
 
 ## Licence and data attribution
 
