@@ -20,7 +20,7 @@ from ._generated.vra_models import (
 )
 from .errors import UpstreamError
 from .models import Coverage, Observation, Provenance, Station
-from .retry import upstream_retry
+from .upstream import upstream_client, upstream_retry
 
 
 # VRAQuery VMO type code and station-ID namespace per network.
@@ -73,12 +73,7 @@ class VRAProvider:
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.token_url = token_url
-        # Identify ourselves so OVF can attribute and contact this traffic.
-        self.client = httpx.AsyncClient(
-            timeout=timeout,
-            follow_redirects=True,
-            headers={"User-Agent": "ovf-data-mcp (+https://github.com/kalcifield/ovf-data-mcp)"},
-        )
+        self.client = upstream_client(timeout)
         self._token: str | None = None
         self._metrics: list[dict[str, Any]] | None = None
         self._data_types: list[dict[str, Any]] | None = None

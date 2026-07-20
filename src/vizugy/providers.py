@@ -9,13 +9,13 @@ import httpx
 
 from .errors import AccessDeniedError, NotFoundError, UpstreamError
 from .models import Dataset, DatasetDescription, Field, Provenance
-from .retry import upstream_retry
+from .upstream import upstream_client, upstream_retry
 
 
 class ArcGISProvider:
     def __init__(self, base_url: str, timeout: float = 15, cache_ttl: float = 300) -> None:
         self.base_url = base_url.rstrip("/")
-        self.client = httpx.AsyncClient(timeout=timeout, follow_redirects=True)
+        self.client = upstream_client(timeout)
         self.cache_ttl = cache_ttl
         self._cache: dict[str, tuple[float, dict[str, Any]]] = {}
         self.warnings: list[str] = []

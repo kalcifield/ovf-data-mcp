@@ -1,8 +1,11 @@
-"""Shared upstream retry policy.
+"""Shared upstream client identity and retry policy.
 
 Both OVF services are slow, lightly provisioned public endpoints. Transient failures
 (timeouts, 5xx) are worth one or two more attempts; deterministic failures (4xx, auth,
 malformed payloads) are not, and repeating them only adds load upstream.
+
+Every request identifies this tool so OVF can attribute and contact the traffic; both
+providers build their client here so that identity cannot drift apart again.
 """
 
 from __future__ import annotations
@@ -14,6 +17,16 @@ import httpx
 from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 from .errors import AccessDeniedError, NotFoundError, UpstreamError
+
+
+USER_AGENT = "ovf-data-mcp (+https://github.com/kalcifield/ovf-data-mcp)"
+
+
+def upstream_client(timeout: float) -> httpx.AsyncClient:
+    """Build an identified HTTP client for an OVF upstream."""
+    return httpx.AsyncClient(
+        timeout=timeout, follow_redirects=True, headers={"User-Agent": USER_AGENT}
+    )
 
 
 def _is_transient(exc: BaseException) -> bool:

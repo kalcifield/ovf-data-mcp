@@ -617,3 +617,20 @@ async def test_client_error_is_not_retried() -> None:
 
     data_calls = [r for r in requests_from(router) if r.url.path != "/token"]
     assert len(data_calls) == 1  # 4xx is deterministic: no repeat load on OVF
+
+
+@pytest.mark.asyncio
+async def test_both_providers_identify_themselves_upstream() -> None:
+    from vizugy.providers import ArcGISProvider
+    from vizugy.upstream import USER_AGENT
+
+    # The README and the OVF contact mail both state that every request is identified;
+    # a provider that builds its own client would silently break that claim.
+    vra = VRAProvider("https://api.test", "https://auth.test/token")
+    arcgis = ArcGISProvider("https://arcgis.test")
+    try:
+        assert vra.client.headers["User-Agent"] == USER_AGENT
+        assert arcgis.client.headers["User-Agent"] == USER_AGENT
+    finally:
+        await vra.close()
+        await arcgis.close()
