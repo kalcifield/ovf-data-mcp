@@ -69,7 +69,7 @@
   <div class="tiles" id="tiles"></div>
 
   <div class="card">
-    <h2>Napi középvízállás, 2026. február 1. – március 24. (cm, helyi vízmérce-nullpont)</h2>
+    <h2>Napi középvízállás, 2026. január 31. – március 24. (cm, helyi vízmérce-nullpont)</h2>
     <p class="sub">Vízmércénként egy panel, felvíz → alvíz · az y-skálák eltérnek · az értékekhez vigye fölé az egeret, vagy fókuszáljon és használja a nyílbillentyűket</p>
     <svg id="chart" viewBox="0 0 960 640" role="img" tabindex="0"
          aria-label="Öt egymás alatti vonaldiagram a Duna napi vízállásáról 2026 februárjában és márciusában, felvíztől alvíz felé: Komárom, Esztergom, Budapest, Baja, Mohács. A jelölt tetőzések háromnapos levonulást mutatnak. A teljes adatsor az alábbi táblázatban található."></svg>
@@ -115,8 +115,8 @@ const rkm = Math.round(first.rkm - last.rkm);
 document.getElementById("tiles").innerHTML = `
   <div class="tile"><div class="label">Levonulási idő</div><div class="value">${lagDays}<small> nap</small></div><div class="sub">${first.name} → ${last.name}</div></div>
   <div class="tile"><div class="label">Megtett távolság</div><div class="value">≈${rkm}<small> fkm</small></div><div class="sub">fkm ${fmt(first.rkm)} → ${fmt(last.rkm)}</div></div>
-  <div class="tile"><div class="label">Átlagos haladási sebesség</div><div class="value">≈${fmt(rkm / lagDays / 24)}<small> km/h</small></div><div class="sub">${Math.round(rkm / lagDays)} km/nap</div></div>
-  <div class="tile"><div class="label">Legmagasabb tetőzés</div><div class="value">${fmt(Math.max(...GAUGES.map(g => g.peak[1])))}<small> cm</small></div><div class="sub">${GAUGES.reduce((a, b) => (b.peak[1] > a.peak[1] ? b : a)).name}</div></div>`;
+  <div class="tile"><div class="label">Átlagos haladási sebesség</div><div class="value">≈${fmt(rkm / (lagDays + 1) / 24)}–${fmt(rkm / (lagDays - 1) / 24)}<small> km/h</small></div><div class="sub">napi felbontás: a 3 napos késés ±1 nap, így ${Math.round(rkm / (lagDays + 1))}–${Math.round(rkm / (lagDays - 1))} km/nap</div></div>
+  <div class="tile"><div class="label">Legnagyobb emelkedés</div><div class="value">${fmt(Math.max(...GAUGES.map(g => g.peak[1] - Math.min(...g.rows.map(r => r[1])))))}<small> cm</small></div><div class="sub">${GAUGES.reduce((a, b) => ((b.peak[1] - Math.min(...b.rows.map(r => r[1]))) > (a.peak[1] - Math.min(...a.rows.map(r => r[1]))) ? b : a)).name} — saját mércéjén belül; a vízállások nullpontja eltér, ezért abszolút értékben nem összemérhetők</div></div>`;
 
 // ---- small multiples ----
 const W = 960, PH = 118, GAP = 6, M = { t: 8, r: 16, b: 26, l: 46 };
