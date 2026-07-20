@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Hol áll most a mélyben a víz? | ovf-data-mcp példa</title>
+<title>Hol tart most a rétegvíz? | ovf-data-mcp példa</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <style>
 *{box-sizing:border-box;margin:0} body{--bg:#071417;--panel:#0d2023;--panel2:#10282b;--ink:#f2f5ee;--soft:#aab8b5;--muted:#718581;--line:rgba(220,240,234,.12);--cyan:#5dd4d0;--red:#ff705d;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink)}
@@ -17,7 +17,7 @@
 </style>
 </head>
 <body><main class="wrap">
-<header><div><div class="eyebrow">30 mélykút · legfrissebb jelentett hónap</div><h1>Hol áll most a mélyben a víz?</h1><p>A legfrissebb rétegvízszint minden kútnál a saját, azonos naptári hónapban mért történetéhez képest. Nem összemossuk a kutak eltérő helyi szintjeit: azt kérdezzük, hogy egy kút a saját múltjában most hol áll. Nyilvános OVF-adatok az <a href="https://github.com/kalcifield/ovf-data-mcp">ovf-data-mcp</a> segítségével.</p></div><div class="hero-number"><b id="median-pct">—</b><span>medián történeti percentilis a 30 kút között</span></div></header>
+<header><div><div class="eyebrow">30 mélykút · legfrissebb jelentett hónap</div><h1>Hol tart most a rétegvíz?</h1><p>A legfrissebb rétegvízszint minden kútnál a saját, azonos naptári hónapban mért történetéhez képest. Nem összemossuk a kutak eltérő helyi szintjeit: azt kérdezzük, hogy egy kút a saját múltjában most hol áll. Nyilvános OVF-adatok az <a href="https://github.com/kalcifield/ovf-data-mcp">ovf-data-mcp</a> segítségével.</p></div><div class="hero-number"><b id="median-pct">—</b><span>medián történeti percentilis a 30 kút között</span></div></header>
 <section class="summary"><div class="metric"><b id="record-low">—</b><span>saját történeti minimumán vagy alatta</span></div><div class="metric"><b id="bottom">—</b><span>kút saját alsó tizedében</span></div><div class="metric"><b id="top">—</b><span>kút saját felső tizedében</span></div><div class="metric"><b>8 679</b><span>havi történeti átlag a 30 kút idősoraiban</span></div></section>
 <div class="section-head"><div><div class="eyebrow">Mélyfúrásfal</div><h2>30 kút, alacsonytól a magasig</h2></div><p>Minden oszlop egy kút. A fényes vízvonal magassága a történeti percentilis; kattintásra megnyílik a teljes idősor és a földrajzi hely. A 0% azt jelenti, hogy a friss érték a kút minden korábbi azonos havi átlaga alatt van.</p></div>
 <section class="workspace"><div><section class="wall" id="wall" aria-label="Kutak történeti percentilis szerint rendezve"></section><div class="scale"><span>↓ saját történetében alacsony</span><span>saját történetében magas ↑</span></div></div>

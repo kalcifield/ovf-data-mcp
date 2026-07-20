@@ -78,6 +78,10 @@ vizugy observations aggregate surface:818 \
 
 More examples, each built the same way:
 
+- **[How deep does the drought bite?](https://kalcifield.github.io/ovf-data-mcp/examples/varosfold-soil-drought.html)**
+  ([source](docs/examples/varosfold-soil-drought.html)) — soil moisture at six sensor
+  depths on the Danube–Tisza ridge, day by day through 2026 against the record 2022
+  drought: a wetter start, yet by late May the topsoil was drier than 2022's low.
 - **[Hungary's hidden groundwater pulse](https://kalcifield.github.io/ovf-data-mcp/examples/hungary-deep-groundwater-pulse.html)**
   ([source](docs/examples/hungary-deep-groundwater-pulse.html)) — the latest reported
   month at 30 spatially distributed deep wells, ranked against decades of observations
