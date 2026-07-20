@@ -60,7 +60,7 @@
 <div class="wrap">
   <header>
     <h1>A Duna egy éve, Balatonban mérve</h1>
-    <p>A Duna napi középvízhozama Budapestnél 2025. július 18. és 2026. július 17. között — és az összegük.
+    <p>A Duna napi középvízhozama Budapestnél 2025. július 17. és 2026. július 17. között — és az összegük.
        Még ebben az aszályos évben is 47 km³ víz folyt át a városon: nagyjából 15 naponta
        egy Balatonnyi. Nyilvános OVF-adatok, amelyeket egy MI-ügynök ért el az
        <a href="https://github.com/kalcifield/ovf-data-mcp">ovf-data-mcp</a> segítségével. Az operatív adatok előzetesek, nem ellenőrzöttek.</p>
@@ -132,7 +132,7 @@ const low = DATA.reduce((a, b) => (b[1] < a[1] ? b : a));
 
 document.getElementById("tiles").innerHTML = `
   <div class="tile"><div class="label">Budapestnél átfolyt éves vízmennyiség</div><div class="value">${fmt(total, 1)}<small> km³</small></div><div class="sub">napi középértékekből összegezve</div></div>
-  <div class="tile"><div class="label">Balatonban kifejezve</div><div class="value">≈${fmt(balatons, 0)}</div><div class="sub">~${fmt(366 / balatons, 0)} naponta egy Balaton</div></div>
+  <div class="tile"><div class="label">Balatonban kifejezve</div><div class="value">≈${fmt(balatons, 0)}</div><div class="sub">~${fmt(DATA.length / balatons, 0)} naponta egy Balaton</div></div>
   <div class="tile"><div class="label">Legnagyobb vízhozamú nap</div><div class="value">${fmt(peak[1])}<small> m³/s</small></div><div class="sub">${fmtDate(peak[0])}, árvízi tetőzés</div></div>
   <div class="tile"><div class="label">Legkisebb vízhozamú nap</div><div class="value">${fmt(low[1])}<small> m³/s</small></div><div class="sub">${fmtDate(low[0])} — a tetőzés ${fmt(peak[1] / low[1], 1)}-szerese</div></div>`;
 
