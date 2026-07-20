@@ -580,3 +580,40 @@ async def test_invalid_wire_response_becomes_upstream_error() -> None:
             await provider.stations()
     finally:
         await provider.close()
+
+
+@pytest.mark.asyncio
+async def test_transient_timeout_is_retried_then_succeeds() -> None:
+    attempts = {"n": 0}
+
+    def flaky(request: httpx.Request) -> httpx.Response:
+        attempts["n"] += 1
+        if attempts["n"] < 3:
+            raise httpx.ReadTimeout("timed out", request=request)
+        return httpx.Response(200, json=[metric_payload()])
+
+    provider, router = provider_with(
+        {"/Base/AdatFajta": flaky, "/Base/AdatTipus": [data_type_payload()]}
+    )
+    try:
+        metrics, _ = await provider.catalogs()
+    finally:
+        await provider.close()
+
+    assert metrics[0]["KodAZ"] == 68  # recovered instead of dropping the station
+    assert attempts["n"] == 3
+
+
+@pytest.mark.asyncio
+async def test_client_error_is_not_retried() -> None:
+    provider, router = provider_with(
+        {"/Base/AdatFajta": lambda request: httpx.Response(400), "/Base/AdatTipus": []}
+    )
+    try:
+        with pytest.raises(UpstreamError):
+            await provider.catalogs()
+    finally:
+        await provider.close()
+
+    data_calls = [r for r in requests_from(router) if r.url.path != "/token"]
+    assert len(data_calls) == 1  # 4xx is deterministic: no repeat load on OVF

@@ -20,6 +20,7 @@ from ._generated.vra_models import (
 )
 from .errors import UpstreamError
 from .models import Coverage, Observation, Provenance, Station
+from .retry import upstream_retry
 
 
 # VRAQuery VMO type code and station-ID namespace per network.
@@ -100,27 +101,35 @@ class VRAProvider:
         self, method: str, path: str, adapter: TypeAdapter[T], **kwargs: Any
     ) -> WireResponse[T]:
         try:
+            return await self._send(method, path, adapter, **kwargs)
+        except (httpx.HTTPError, KeyError, ValueError) as exc:
+            # str() of httpx timeout exceptions is often empty; fall back to the class name.
+            detail = str(exc) or type(exc).__name__
+            raise UpstreamError(f"VRAQuery request failed: {detail}") from exc
+
+    # VRAQuery aggregation is slow enough that timeouts are routine under load; retry
+    # transient failures rather than dropping a station from a multi-station sweep.
+    @upstream_retry(attempts=3, first_delay=1.0)
+    async def _send(
+        self, method: str, path: str, adapter: TypeAdapter[T], **kwargs: Any
+    ) -> WireResponse[T]:
+        response = await self.client.request(
+            method,
+            f"{self.base_url}/{path.lstrip('/')}",
+            headers=await self._headers(),
+            **kwargs,
+        )
+        if response.status_code == 401:
+            self._token = None
             response = await self.client.request(
                 method,
                 f"{self.base_url}/{path.lstrip('/')}",
                 headers=await self._headers(),
                 **kwargs,
             )
-            if response.status_code == 401:
-                self._token = None
-                response = await self.client.request(
-                    method,
-                    f"{self.base_url}/{path.lstrip('/')}",
-                    headers=await self._headers(),
-                    **kwargs,
-                )
-            response.raise_for_status()
-            raw: object = response.json()
-            return WireResponse(value=adapter.validate_python(raw), raw=raw)
-        except (httpx.HTTPError, KeyError, ValueError) as exc:
-            # str() of httpx timeout exceptions is often empty; fall back to the class name.
-            detail = str(exc) or type(exc).__name__
-            raise UpstreamError(f"VRAQuery request failed: {detail}") from exc
+        response.raise_for_status()
+        raw: object = response.json()
+        return WireResponse(value=adapter.validate_python(raw), raw=raw)
 
     async def catalogs(self) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         if self._metrics is None:

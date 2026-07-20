@@ -9,6 +9,7 @@ import httpx
 
 from .errors import AccessDeniedError, NotFoundError, UpstreamError
 from .models import Dataset, DatasetDescription, Field, Provenance
+from .retry import upstream_retry
 
 
 class ArcGISProvider:
@@ -27,28 +28,27 @@ class ArcGISProvider:
         cached = self._cache.get(url)
         if cached and cached[0] > time.monotonic():
             return cached[1]
-        error: Exception | None = None
-        for attempt in range(3):
-            try:
-                response = await self.client.get(url, params={"f": "pjson"})
-                response.raise_for_status()
-                data = cast(dict[str, Any], response.json())
-                if "error" in data:
-                    code = data["error"].get("code")
-                    if code == 404:
-                        raise NotFoundError(path)
-                    if code in (403, 498, 499):
-                        raise AccessDeniedError(f"requires ArcGIS authentication (code {code})")
-                    raise UpstreamError(data["error"].get("message", "ArcGIS error"))
-                self._cache[url] = (time.monotonic() + self.cache_ttl, data)
-                return data
-            except (NotFoundError, AccessDeniedError):
-                raise
-            except (httpx.HTTPError, ValueError, UpstreamError) as exc:
-                error = exc
-                if attempt < 2:
-                    await asyncio.sleep(0.2 * (2**attempt))
-        raise UpstreamError(f"ArcGIS request failed: {error}") from error
+        try:
+            return await self._fetch(url, path)
+        except (NotFoundError, AccessDeniedError):
+            raise
+        except (httpx.HTTPError, ValueError, UpstreamError) as exc:
+            raise UpstreamError(f"ArcGIS request failed: {exc}") from exc
+
+    @upstream_retry(attempts=3, first_delay=0.2)
+    async def _fetch(self, url: str, path: str) -> dict[str, Any]:
+        response = await self.client.get(url, params={"f": "pjson"})
+        response.raise_for_status()
+        data = cast(dict[str, Any], response.json())
+        if "error" in data:
+            code = data["error"].get("code")
+            if code == 404:
+                raise NotFoundError(path)
+            if code in (403, 498, 499):
+                raise AccessDeniedError(f"requires ArcGIS authentication (code {code})")
+            raise UpstreamError(data["error"].get("message", "ArcGIS error"))
+        self._cache[url] = (time.monotonic() + self.cache_ttl, data)
+        return data
 
     def _dataset(self, item: dict[str, Any], version: float | None, source: str) -> Dataset:
         identifier = item["name"]
