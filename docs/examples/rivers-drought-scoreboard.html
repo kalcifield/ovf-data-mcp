@@ -62,7 +62,7 @@
   <header>
     <h1>Milyen alacsonyak most Magyarország vizei?</h1>
     <p>Hat fontos vízmérce mai napi középvízállása, a saját 12 havi tartományukban elhelyezve
-       (2025. július 18. – 2026. július 17.). Az értékek a helyi vízmérce-nullpont feletti
+       (2025. július 17. – 2026. július 17.). Az értékek a helyi vízmérce-nullpont feletti
        centiméterek; egyes vízmércéknél a negatív érték normális. Nyilvános OVF-adatok az
        <a href="https://github.com/kalcifield/ovf-data-mcp">ovf-data-mcp</a> segítségével. Az operatív adatok előzetesek, nem ellenőrzöttek.</p>
   </header>
@@ -74,7 +74,7 @@
 
   <div class="board" id="board">
     <div class="row head">
-      <div>Vízmérce · vízfolyás</div><div>Elmúlt 12 hónap</div><div>Helyzet a 12 havi tartományban</div><div style="text-align:right">Ma</div>
+      <div>Vízmérce · víztest</div><div>Elmúlt 12 hónap</div><div>Helyzet a 12 havi tartományban</div><div style="text-align:right">Ma</div>
     </div>
   </div>
   <div class="legend">
@@ -93,8 +93,10 @@
 
   <footer>
     <h3>Hogyan készült ez az oldal?</h3>
-    <p>Az ügynök vízfolyásonként kiválasztott egy jellemző vízmércét, majd mindegyikhez ugyanazt
-       a 12 havi szerveroldali összesítést futtatta:</p>
+    <p>Az ügynök hat vízmércét választott négy víztestről (Duna: Budapest és Mohács, Tisza:
+       Szolnok és Szeged, Dráva: Drávaszabolcs, Balaton: Siófok), majd mindegyikhez ugyanazt
+       a 12 havi szerveroldali összesítést futtatta. A két Duna- és a két Tisza-mérce erősen
+       együtt mozog (r ≈ 0,9), tehát a hat érték nem hat független jelzés:</p>
     <pre>vizugy stations search Szeged --watercourse Tisza     # … and 5 more lookups
 vizugy observations aggregate surface:2275 --start 2025-07-18T00:00:00Z \
     --end 2026-07-18T00:00:00Z --interval daily --operation avg   # × 6 gauges</pre>
@@ -167,7 +169,9 @@ for (const g of GAUGES) {
   const now = document.createElement("div"); now.className = "g-now";
   const v = document.createElement("div"); v.className = "v"; v.textContent = fmt(g.now) + " cm";
   const p = document.createElement("div"); p.className = "p";
-  p.textContent = g.pos <= 0.005 ? "12 havi minimum" : Math.round(g.pos * 100) + "% a tartományban";
+  // Csak a tényleges 12 havi minimumra írjuk ki a jelvényt: a korábbi 0,005-ös tűrés
+  // Szolnokon 2,9 cm-t jelentett, így a jelvény ellentmondott a saját táblázatának.
+  p.textContent = g.now <= g.min ? "12 havi minimum" : Math.round(g.pos * 100) + "% a tartományban";
   now.append(v, p);
 
   row.append(name, spark, strip, now);
