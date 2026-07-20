@@ -82,6 +82,23 @@ dry soil. Excluded from analysis on both grounds.
 (from 2022-03-31) and Tótkomlós (from 2022-12-02) start mid-baseline, and Pusztamérges
 is the dead one above.
 
+### Aggregated series can start a day before the requested start
+
+Daily aggregation with `--start 2025-07-18T00:00:00Z` returns a first bucket dated
+**2025-07-17**. Observed on several stations and metrics, so it is systematic rather than
+per-station. The likely cause is the hydrological-day boundary — the requested instant
+falls inside the bucket labelled with the previous date — but that mechanism is inferred,
+not confirmed upstream.
+
+Consequences worth knowing: a series carries one more row than the requested span
+suggests, and any prose quoting the requested window will disagree with the data by a
+day. Four example pages shipped with exactly that mismatch. Label periods from the
+returned data, not from the request.
+
+Also note the reverse case: the last bucket may be a **partial** day. A row where
+min, mean and max are all identical is the signature of a single reading rather than a
+full day's aggregate, and should not be presented as a daily mean.
+
 ### Coverage is reported for a related data type
 
 Requesting coverage for `operatív összefésült` (101) returns coverage for `operatív`
@@ -103,6 +120,37 @@ Wilting point and field capacity are published in the ArcGIS drought layer but a
 for all 127 stations (see `arcgis-drought-layers.md`). Raw soil-moisture percentages
 are therefore **not comparable between stations** — soils and calibration differ. Only
 within-station comparisons (same station, same depth, across time) are defensible.
+
+The same rule holds for water levels: each gauge reports centimetres above its own local
+datum, so absolute levels are not comparable between gauges either. On the Danube in
+February 2026, Esztergom peaked at 399.6 cm while Komárom, upstream, peaked at 426.8 cm
+— a datum artefact, not a hydrological fact. Any "highest" or "lowest" claim across
+stations needs normalising against each station's own range, threshold or record.
+
+### Station coordinates can be wrong
+
+`stations` returns registry coordinates unchecked. Verified 2026-07-20:
+`deep-well` **Ódörögdpuszta HgN-62** (municipality Zalahaláp) is published at
+**45.5029 N, 17.4689 E**. The longitude is right; the latitude is roughly 1.4° too far
+south, putting the well in Croatia, about 155 km from Zalahaláp.
+
+This is upstream data, not a client bug — the same values come back from a plain
+`vizugy stations search`. Do not silently correct them: a plausible-looking substituted
+coordinate is fabricated data. Plot what upstream publishes and mark it, or exclude it
+and say so.
+
+A cheap guard for any map is a bounding-box check against Hungary
+(lat 45.7–48.6, lon 16.1–22.9) with anything outside rendered distinctly rather than
+dropped. `docs/examples/hungary-deep-groundwater-pulse.html` does this.
+
+### Percentiles: the ranking base is smaller than the series
+
+When ranking a recent value against history for the same calendar month, the evidence is
+only the same-month subset, not the full series. In the deep-well example the 30 wells
+hold 8,679 monthly values in total, but the percentiles rest on **731** same-month values
+— 12 to 41 per well, median 22. At n=12 the resolution is 8.3 percentage points and
+"0th percentile" means "below twelve numbers". Publish the per-entity n alongside the
+rank, and do not present a percentile from n=12 as equivalent to one from n=41.
 
 ## Note on diagnosing empty results
 
