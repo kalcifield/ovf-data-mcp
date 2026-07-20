@@ -48,6 +48,8 @@ The CLI is the primary interface; MCP tools are thin adapters over identical ope
   for verified soil metrics this is exposed as sensor depth in centimetres.
 - Find stations with documented coverage for a requested metric and compare aligned,
   upstream-aggregated soil series across 10, 20, 30, 45, 60, and 75 cm depths.
+- Report officially declared water-shortage (drought) grades per district, with the
+  declaring action and timestamps — administrative status, not measurements.
 - Explain resolved identifiers and query semantics without fetching values.
 - Return structured provenance and explicit upstream caveats.
 
@@ -338,11 +340,31 @@ vizugy datasets describe \
 Some advertised ArcGIS folders require authentication. Public discovery skips them and
 returns explicit warnings rather than failing the entire catalogue request.
 
+### Declared water-shortage grades
+
+The ArcGIS drought folder publishes the water-shortage grade each directorate has
+formally declared for its districts. This is the administrative response to drought,
+not a measurement, and pairs with the measured series above:
+
+```bash
+vizugy datasets water-shortage --grade-code 723 --limit 10
+vizugy datasets water-shortage --directorate ATIVIZIG
+```
+
+A live probe on 2026-07-20 returned 85 districts: 28 at `III. fok`, 34 at `II. fok`,
+9 at `I. fok`, with declarations as recent as 2026-07-19. Each record carries the
+previous grade code, so escalations stay visible. Grade codes are 720 (none), 721,
+722, and 723 (most severe).
+
+The same layer joins a drought-index block whose values are stale by roughly two
+years; those fields are deliberately not read. See `docs/arcgis-drought-layers.md`.
+
 ## CLI reference
 
 ```text
 vizugy datasets list
 vizugy datasets describe
+vizugy datasets water-shortage
 vizugy catalog measurements
 vizugy stations search
 vizugy stations nearest

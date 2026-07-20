@@ -17,6 +17,7 @@ from .models import (
     QueryPlan,
     SoilDepthComparison,
     StationPage,
+    WaterShortageStatus,
 )
 
 T = TypeVar("T")
@@ -85,6 +86,26 @@ def describe_dataset(dataset_id: str, layer: int | None = typer.Option(None)) ->
     async def operation() -> DatasetDescription:
         try:
             return await service.describe_dataset(dataset_id, layer)
+        finally:
+            await service.close()
+
+    print(run(operation()).model_dump_json(indent=2))
+
+
+@datasets.command("water-shortage")
+def water_shortage(
+    grade_code: int | None = typer.Option(None, help="720 (none), 721, 722, or 723."),
+    directorate: str | None = typer.Option(
+        None, help="Filter by water directorate, e.g. ADUVIZIG."
+    ),
+    limit: int = typer.Option(100, min=1, max=200),
+) -> None:
+    """Officially declared water-shortage grades per district."""
+    service = create_service()
+
+    async def operation() -> WaterShortageStatus:
+        try:
+            return await service.water_shortage_districts(grade_code, directorate, limit)
         finally:
             await service.close()
 

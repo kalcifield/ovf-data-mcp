@@ -228,3 +228,127 @@ async def test_depth_comparison_cap_reports_estimate_before_upstream_call() -> N
         assert not attempts  # bound is pre-flight: OVF is never contacted
     finally:
         await service.close()
+
+
+def water_shortage_routes(
+    features: list[dict[str, Any]],
+) -> dict[str, tuple[int, dict[str, Any]]]:
+    return {
+        "/arcgis/rest/services": (
+            200,
+            {"currentVersion": 10.61, "folders": ["Aszalymon"], "services": []},
+        ),
+        "/arcgis/rest/services/Aszalymon": (
+            200,
+            {"services": [{"name": "Aszalymon/Aszaly_fokozatok", "type": "MapServer"}]},
+        ),
+        "/arcgis/rest/services/Aszalymon/Aszaly_fokozatok/MapServer/0/query": (
+            200,
+            {"features": features},
+        ),
+    }
+
+
+def district_feature(
+    name: str, grade: str, grade_code: int, declared_ms: int = 1784462400000
+) -> dict[str, Any]:
+    prefix = "vop.dbo.tVizhianyKorzet."
+    return {
+        "attributes": {
+            "vizhiany_korzetek_webmerc.vizig": "ADUVIZIG",
+            f"{prefix}VizhianyKorzetNev": name,
+            f"{prefix}VizhianyKorzetSzam": "03.02.",
+            f"{prefix}VizhianyKorzetTer": 1585.163,
+            f"{prefix}Fokozat": grade,
+            f"{prefix}FokozatKod": grade_code,
+            f"{prefix}FokozatKodElozo": 720,
+            f"{prefix}fvNev": "ELRENDELÉS",
+            f"{prefix}Idopont": declared_ms,
+            f"{prefix}UtolsoFrissitesIdopont": None,
+        }
+    }
+
+
+@pytest.mark.asyncio
+async def test_water_shortage_normalizes_declaration_fields() -> None:
+    provider = provider_with(
+        water_shortage_routes(
+            [
+                district_feature("Kalocsai", "III. fok", 723),
+                district_feature("Bajai", "II. fok", 722),
+            ]
+        )
+    )
+    try:
+        result = await VizugyService(provider).water_shortage_districts()
+        assert result.grade_counts == {"II. fok": 1, "III. fok": 1}
+        first = result.items[0]
+        assert first.name == "Kalocsai"
+        assert first.directorate == "ADUVIZIG"
+        assert first.grade_code == 723
+        assert first.previous_grade_code == 720  # escalation stays visible
+        assert first.declared_at == "2026-07-19T12:00:00+00:00"  # epoch ms -> ISO UTC
+        assert first.updated_at is None  # absent upstream value is not invented
+        assert result.latest_declaration == "2026-07-19T12:00:00+00:00"
+        assert any("not measurements" in w for w in result.warnings)
+    finally:
+        await provider.close()
+
+
+@pytest.mark.asyncio
+async def test_water_shortage_filters_and_bounds() -> None:
+    provider = provider_with(
+        water_shortage_routes(
+            [
+                district_feature("Kalocsai", "III. fok", 723),
+                district_feature("Bajai", "II. fok", 722),
+                district_feature("Vasi", "III. fok", 723),
+            ]
+        )
+    )
+    try:
+        service = VizugyService(provider)
+        severe = await service.water_shortage_districts(grade_code=723)
+        assert severe.total == 2
+        assert {d.name for d in severe.items} == {"Kalocsai", "Vasi"}
+        # counts describe the whole layer, not the filtered subset
+        assert severe.grade_counts == {"II. fok": 1, "III. fok": 2}
+
+        bounded = await service.water_shortage_districts(limit=1)
+        assert bounded.returned == 1
+        assert bounded.truncated is True
+
+        with pytest.raises(ValueError):
+            await service.water_shortage_districts(grade_code=999)
+    finally:
+        await provider.close()
+
+
+@pytest.mark.asyncio
+async def test_water_shortage_query_never_requests_geometry() -> None:
+    seen: list[httpx.URL] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request.url)
+        path = request.url.path
+        if path.endswith("/query"):
+            return httpx.Response(200, json={"features": []})
+        if path.endswith("/Aszalymon"):
+            return httpx.Response(
+                200,
+                json={"services": [{"name": "Aszalymon/Aszaly_fokozatok", "type": "MapServer"}]},
+            )
+        return httpx.Response(200, json={"currentVersion": 10.61, "folders": ["Aszalymon"]})
+
+    provider = ArcGISProvider("https://example.test/arcgis/rest")
+    provider.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    try:
+        result = await VizugyService(provider).water_shortage_districts()
+        query = next(url for url in seen if url.path.endswith("/query"))
+        assert query.params["returnGeometry"] == "false"
+        assert "*" not in query.params["outFields"]  # explicit field list, never a wildcard
+        assert "hdi" not in query.params["outFields"]  # stale index block stays unread
+        assert result.items == []
+        assert result.latest_declaration is None
+    finally:
+        await provider.close()

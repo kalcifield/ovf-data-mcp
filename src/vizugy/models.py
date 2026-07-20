@@ -46,6 +46,31 @@ class Page(BaseModel):
     warnings: list[str] = PydanticField(default_factory=list)
 
 
+class WaterShortageDistrict(BaseModel):
+    code: str | None = None
+    name: str | None = None
+    directorate: str | None = None
+    area_km2: float | None = None
+    grade: str | None = None
+    grade_code: int | None = None
+    previous_grade_code: int | None = None
+    action: str | None = None
+    declared_at: str | None = None
+    updated_at: str | None = None
+
+
+class WaterShortageStatus(BaseModel):
+    items: list[WaterShortageDistrict]
+    returned: int
+    total: int
+    limit: int
+    truncated: bool
+    grade_counts: dict[str, int] = PydanticField(default_factory=dict)
+    latest_declaration: str | None = None
+    provenance: Provenance
+    warnings: list[str] = PydanticField(default_factory=list)
+
+
 class Station(BaseModel):
     id: str
     registry_number: int

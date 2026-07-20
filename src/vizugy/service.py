@@ -14,14 +14,36 @@ from .models import (
     ObservationResult,
     ObservationPoint,
     Page,
+    Provenance,
     QueryPlan,
     SoilDepthComparison,
     Station,
     StationPage,
+    WaterShortageDistrict,
+    WaterShortageStatus,
 )
 from .providers import ArcGISProvider
 from .vra_provider import NETWORKS, SOIL_DEPTHS_CM, SOIL_METRIC_CODES, VRAProvider
 
+
+WATER_SHORTAGE_DATASET = "Aszalymon/Aszaly_fokozatok"
+WATER_SHORTAGE_LAYER = 0
+# The layer joins a declaration table to a stale drought-index block; only the
+# declaration fields are read. See docs/arcgis-drought-layers.md.
+_DECL = "vop.dbo.tVizhianyKorzet."
+_SHAPE = "vizhiany_korzetek_webmerc."
+WATER_SHORTAGE_FIELDS = [
+    f"{_SHAPE}vizig",
+    f"{_DECL}VizhianyKorzetNev",
+    f"{_DECL}VizhianyKorzetSzam",
+    f"{_DECL}VizhianyKorzetTer",
+    f"{_DECL}Fokozat",
+    f"{_DECL}FokozatKod",
+    f"{_DECL}FokozatKodElozo",
+    f"{_DECL}fvNev",
+    f"{_DECL}Idopont",
+    f"{_DECL}UtolsoFrissitesIdopont",
+]
 
 AGGREGATION_INTERVALS = frozenset({"daily", "tenday", "monthly", "yearly"})
 AGGREGATION_OPERATIONS = frozenset({"min", "max", "avg", "sum", "cnt", "mean", "cntday"})
@@ -63,6 +85,76 @@ class VizugyService:
         self, dataset_id: str, layer_id: int | None = None
     ) -> DatasetDescription:
         return await self.provider.describe(dataset_id, layer_id)
+
+    @staticmethod
+    def _epoch_ms(value: Any) -> str | None:
+        if not isinstance(value, int | float):
+            return None
+        return datetime.fromtimestamp(value / 1000, UTC).isoformat()
+
+    async def water_shortage_districts(
+        self,
+        grade_code: int | None = None,
+        directorate: str | None = None,
+        limit: int = 100,
+    ) -> WaterShortageStatus:
+        """Officially declared water-shortage grades per district (ArcGIS)."""
+        if not 1 <= limit <= 200:
+            raise ValueError("limit must be between 1 and 200")
+        if grade_code is not None and grade_code not in (720, 721, 722, 723):
+            raise ValueError("grade_code must be 720 (none), 721, 722, or 723")
+        rows, source_url = await self.provider.query_features(
+            WATER_SHORTAGE_DATASET,
+            WATER_SHORTAGE_LAYER,
+            "1=1",
+            WATER_SHORTAGE_FIELDS,
+            max_records=200,
+        )
+        districts = [
+            WaterShortageDistrict(
+                code=row.get(f"{_DECL}VizhianyKorzetSzam"),
+                name=row.get(f"{_DECL}VizhianyKorzetNev"),
+                directorate=row.get(f"{_SHAPE}vizig"),
+                area_km2=row.get(f"{_DECL}VizhianyKorzetTer"),
+                grade=row.get(f"{_DECL}Fokozat"),
+                grade_code=row.get(f"{_DECL}FokozatKod"),
+                previous_grade_code=row.get(f"{_DECL}FokozatKodElozo"),
+                action=row.get(f"{_DECL}fvNev"),
+                declared_at=self._epoch_ms(row.get(f"{_DECL}Idopont")),
+                updated_at=self._epoch_ms(row.get(f"{_DECL}UtolsoFrissitesIdopont")),
+            )
+            for row in rows
+        ]
+        counts: dict[str, int] = {}
+        for district in districts:
+            counts[district.grade or "unknown"] = counts.get(district.grade or "unknown", 0) + 1
+        declared = [d.declared_at for d in districts if d.declared_at]
+        selected = districts
+        if grade_code is not None:
+            selected = [d for d in selected if d.grade_code == grade_code]
+        if directorate:
+            needle = directorate.casefold()
+            selected = [d for d in selected if (d.directorate or "").casefold() == needle]
+        total = len(selected)
+        page = selected[:limit]
+        return WaterShortageStatus(
+            items=page,
+            returned=len(page),
+            total=total,
+            limit=limit,
+            truncated=total > limit,
+            grade_counts=dict(sorted(counts.items())),
+            latest_declaration=max(declared) if declared else None,
+            provenance=Provenance(
+                provider="ovf_arcgis",
+                source_url=source_url,
+                retrieved_at=datetime.now(UTC).isoformat(),
+            ),
+            warnings=[
+                "grades are administrative declarations, not measurements; "
+                "the layer's drought-index fields are stale and are not returned"
+            ],
+        )
 
     async def find_stations(
         self,

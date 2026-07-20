@@ -28,6 +28,25 @@ def build_server() -> FastMCP:
             await service.close()
 
     @mcp.tool()
+    async def water_shortage_districts(
+        grade_code: int | None = None,
+        directorate: str | None = None,
+        limit: int = 100,
+    ) -> dict[str, Any]:
+        """List officially declared water-shortage (drought) grades per district.
+
+        These are administrative declarations by the water directorates, not
+        measurements. grade_code: 720 (none), 721, 722, or 723 (most severe).
+        """
+        service = create_service()
+        try:
+            return (
+                await service.water_shortage_districts(grade_code, directorate, limit)
+            ).model_dump(mode="json")
+        finally:
+            await service.close()
+
+    @mcp.tool()
     async def list_measurement_types() -> dict[str, Any]:
         """List authoritative metric codes, units, valid ranges, and data-type codes."""
         service = create_service()

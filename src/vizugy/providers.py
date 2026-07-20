@@ -50,6 +50,56 @@ class ArcGISProvider:
         self._cache[url] = (time.monotonic() + self.cache_ttl, data)
         return data
 
+    async def query_features(
+        self,
+        dataset_id: str,
+        layer_id: int,
+        where: str,
+        out_fields: list[str],
+        max_records: int,
+    ) -> tuple[list[dict[str, Any]], str]:
+        """Fetch attribute rows from one layer. Geometry is never requested.
+
+        Callers supply an explicit field list and record cap; this stays an internal
+        adapter so no caller can pass arbitrary SQL through the public interface.
+        """
+        datasets = await self.list_datasets()
+        try:
+            dataset = next(item for item in datasets if item.id == dataset_id)
+        except StopIteration as exc:
+            raise NotFoundError(dataset_id) from exc
+        url = f"{self.base_url}/services/{dataset.id}/{dataset.kind}/{layer_id}/query"
+        params = {
+            "where": where,
+            "outFields": ",".join(out_fields),
+            "returnGeometry": "false",
+            "f": "pjson",
+        }
+        try:
+            data = await self._query(url, f"{dataset_id}/{layer_id}", params)
+        except (NotFoundError, AccessDeniedError):
+            raise
+        except (httpx.HTTPError, ValueError, UpstreamError) as exc:
+            raise UpstreamError(f"ArcGIS request failed: {exc}") from exc
+        # This layer reports supportsPagination: false, so resultOffset is unavailable;
+        # bounding happens client-side after a single capped request.
+        rows = [feature.get("attributes", {}) for feature in data.get("features", [])[:max_records]]
+        return rows, url
+
+    @upstream_retry(attempts=3, first_delay=0.2)
+    async def _query(self, url: str, path: str, params: dict[str, str]) -> dict[str, Any]:
+        response = await self.client.get(url, params=params)
+        response.raise_for_status()
+        data = cast(dict[str, Any], response.json())
+        if "error" in data:
+            code = data["error"].get("code")
+            if code == 404:
+                raise NotFoundError(path)
+            if code in (403, 498, 499):
+                raise AccessDeniedError(f"requires ArcGIS authentication (code {code})")
+            raise UpstreamError(data["error"].get("message", "ArcGIS error"))
+        return data
+
     def _dataset(self, item: dict[str, Any], version: float | None, source: str) -> Dataset:
         identifier = item["name"]
         return Dataset(
