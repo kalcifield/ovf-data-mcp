@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import math
 from datetime import UTC, datetime
@@ -54,6 +56,12 @@ class VizugyService:
         self.provider = provider
         self.vra_provider = vra_provider
 
+    async def __aenter__(self) -> VizugyService:
+        return self
+
+    async def __aexit__(self, *_: object) -> None:
+        await self.close()
+
     def _vra(self) -> VRAProvider:
         if self.vra_provider is None:
             raise RuntimeError("VRAQuery provider is not configured")
@@ -63,6 +71,24 @@ class VizugyService:
         await self.provider.close()
         if self.vra_provider is not None:
             await self.vra_provider.close()
+
+    @staticmethod
+    def _observation_point(item: Observation, *, include_quality: bool = False) -> ObservationPoint:
+        return ObservationPoint(
+            observed_at=item.observed_at,
+            value=item.value,
+            quality_code=item.quality_code if include_quality else None,
+            quality=item.quality if include_quality else None,
+            field_quality_code=item.field_quality_code if include_quality else None,
+            field_quality=item.field_quality if include_quality else None,
+            data_ext=item.data_ext,
+            dimensions=item.dimensions,
+        )
+
+    @staticmethod
+    def _estimated_buckets(duration_days: float, interval: str) -> float:
+        days_per_bucket = {"daily": 1, "tenday": 10, "monthly": 28, "yearly": 365}
+        return duration_days / days_per_bucket[interval] + 2
 
     async def list_datasets(self, query: str | None = None, limit: int = 50) -> Page:
         if not 1 <= limit <= 1000:
@@ -408,17 +434,7 @@ class VizugyService:
             station=plan.station,
             query=plan,
             items=[
-                ObservationPoint(
-                    observed_at=item.observed_at,
-                    value=item.value,
-                    quality_code=item.quality_code,
-                    quality=item.quality,
-                    field_quality_code=item.field_quality_code,
-                    field_quality=item.field_quality,
-                    data_ext=item.data_ext,
-                    dimensions=item.dimensions,
-                )
-                for item in items
+                self._observation_point(item, include_quality=include_quality) for item in items
             ],
             returned=len(items),
             truncated=total > len(items),
@@ -483,12 +499,7 @@ class VizugyService:
             data_ext=data_ext,
             depth_cm=depth_cm,
         )
-        max_buckets = {
-            "daily": plan.duration_days + 2,
-            "tenday": plan.duration_days / 10 + 2,
-            "monthly": plan.duration_days / 28 + 2,
-            "yearly": plan.duration_days / 365 + 2,
-        }[interval]
+        max_buckets = self._estimated_buckets(plan.duration_days, interval)
         if max_buckets > 1000:
             raise ValueError(
                 f"{interval} aggregation over {plan.duration_days:.0f} days would request "
@@ -546,15 +557,7 @@ class VizugyService:
         return ObservationResult(
             station=plan.station,
             query=plan,
-            items=[
-                ObservationPoint(
-                    observed_at=item.observed_at,
-                    value=item.value,
-                    data_ext=item.data_ext,
-                    dimensions=item.dimensions,
-                )
-                for item in items
-            ],
+            items=[self._observation_point(item) for item in items],
             returned=len(items),
             provenance=provenance,
             warnings=warnings,
@@ -594,12 +597,7 @@ class VizugyService:
             raise ValueError("depths_cm must use: 10, 20, 30, 45, 60, 75")
         self._validate_aggregation(interval, operation)
         duration_days = (end - start).total_seconds() / 86400
-        max_buckets = {
-            "daily": duration_days + 2,
-            "tenday": duration_days / 10 + 2,
-            "monthly": duration_days / 28 + 2,
-            "yearly": duration_days / 365 + 2,
-        }[interval]
+        max_buckets = self._estimated_buckets(duration_days, interval)
         if max_buckets * len(depths) > 1000:
             raise ValueError(
                 f"{interval} comparison over {duration_days:.0f} days at {len(depths)} depths "
@@ -636,15 +634,7 @@ class VizugyService:
             series=[
                 DepthSeries(
                     depth_cm=depth,
-                    items=[
-                        ObservationPoint(
-                            observed_at=item.observed_at,
-                            value=item.value,
-                            data_ext=item.data_ext,
-                            dimensions=item.dimensions,
-                        )
-                        for item in by_depth[depth]
-                    ],
+                    items=[self._observation_point(item) for item in by_depth[depth]],
                     returned=len(by_depth[depth]),
                 )
                 for depth in depths

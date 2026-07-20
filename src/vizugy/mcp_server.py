@@ -1,9 +1,20 @@
 from datetime import datetime
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 from mcp.server.fastmcp import FastMCP
+from pydantic import BaseModel
 
 from .factory import create_service
+from .service import VizugyService
+
+
+async def use_service(
+    operation: Callable[[VizugyService], Awaitable[BaseModel | dict[str, Any]]],
+) -> dict[str, Any]:
+    async with create_service() as service:
+        result = await operation(service)
+    return result.model_dump(mode="json") if isinstance(result, BaseModel) else result
 
 
 def build_server() -> FastMCP:
@@ -12,20 +23,12 @@ def build_server() -> FastMCP:
     @mcp.tool()
     async def discover_datasets(query: str | None = None, limit: int = 50) -> dict[str, Any]:
         """Find public water datasets by catalogue identifier; results are bounded."""
-        service = create_service()
-        try:
-            return (await service.list_datasets(query, limit)).model_dump(mode="json")
-        finally:
-            await service.close()
+        return await use_service(lambda service: service.list_datasets(query, limit))
 
     @mcp.tool()
     async def describe_dataset(dataset_id: str, layer_id: int | None = None) -> dict[str, Any]:
         """Inspect one dataset or layer, including schema, CRS, limits, and provenance."""
-        service = create_service()
-        try:
-            return (await service.describe_dataset(dataset_id, layer_id)).model_dump(mode="json")
-        finally:
-            await service.close()
+        return await use_service(lambda service: service.describe_dataset(dataset_id, layer_id))
 
     @mcp.tool()
     async def water_shortage_districts(
@@ -38,22 +41,14 @@ def build_server() -> FastMCP:
         These are administrative declarations by the water directorates, not
         measurements. grade_code: 720 (none), 721, 722, or 723 (most severe).
         """
-        service = create_service()
-        try:
-            return (
-                await service.water_shortage_districts(grade_code, directorate, limit)
-            ).model_dump(mode="json")
-        finally:
-            await service.close()
+        return await use_service(
+            lambda service: service.water_shortage_districts(grade_code, directorate, limit)
+        )
 
     @mcp.tool()
     async def list_measurement_types() -> dict[str, Any]:
         """List authoritative metric codes, units, valid ranges, and data-type codes."""
-        service = create_service()
-        try:
-            return await service.measurement_catalog()
-        finally:
-            await service.close()
+        return await use_service(lambda service: service.measurement_catalog())
 
     @mcp.tool()
     async def find_stations(
@@ -69,15 +64,11 @@ def build_server() -> FastMCP:
         network: "surface" (rivers and lakes), "wells" (shallow groundwater),
         "deep-wells" (confined/layer aquifer), or "precipitation".
         """
-        service = create_service()
-        try:
-            return (
-                await service.find_stations(
-                    query, limit, watercourse, municipality, network, metric
-                )
-            ).model_dump(mode="json")
-        finally:
-            await service.close()
+        return await use_service(
+            lambda service: service.find_stations(
+                query, limit, watercourse, municipality, network, metric
+            )
+        )
 
     @mcp.tool()
     async def nearest_stations(
@@ -92,13 +83,9 @@ def build_server() -> FastMCP:
         network: "surface" (rivers and lakes), "wells" (shallow groundwater),
         "deep-wells" (confined/layer aquifer), or "precipitation".
         """
-        service = create_service()
-        try:
-            return (
-                await service.nearest_stations(latitude, longitude, limit, network, metric)
-            ).model_dump(mode="json")
-        finally:
-            await service.close()
+        return await use_service(
+            lambda service: service.nearest_stations(latitude, longitude, limit, network, metric)
+        )
 
     @mcp.tool()
     async def get_observations(
@@ -116,9 +103,8 @@ def build_server() -> FastMCP:
 
         include_quality: add upstream quality codes and labels per observation.
         """
-        service = create_service()
-        try:
-            result = await service.get_observations(
+        return await use_service(
+            lambda service: service.get_observations(
                 station,
                 metric,
                 data_type,
@@ -129,9 +115,7 @@ def build_server() -> FastMCP:
                 data_ext=data_ext,
                 depth_cm=depth_cm,
             )
-            return result.model_dump(mode="json")
-        finally:
-            await service.close()
+        )
 
     @mcp.tool()
     async def inspect_coverage(
@@ -140,13 +124,9 @@ def build_server() -> FastMCP:
         data_type: str = "operational",
     ) -> dict[str, Any]:
         """Resolve a station and report documented temporal coverage before querying."""
-        service = create_service()
-        try:
-            return (await service.inspect_coverage(station, metric, data_type)).model_dump(
-                mode="json"
-            )
-        finally:
-            await service.close()
+        return await use_service(
+            lambda service: service.inspect_coverage(station, metric, data_type)
+        )
 
     @mcp.tool()
     async def aggregate_observations(
@@ -161,9 +141,8 @@ def build_server() -> FastMCP:
         depth_cm: int | None = None,
     ) -> dict[str, Any]:
         """Aggregate observations server-side over daily, ten-day, monthly, or yearly buckets."""
-        service = create_service()
-        try:
-            result = await service.aggregate_observations(
+        return await use_service(
+            lambda service: service.aggregate_observations(
                 station,
                 metric,
                 data_type,
@@ -174,9 +153,7 @@ def build_server() -> FastMCP:
                 data_ext,
                 depth_cm,
             )
-            return result.model_dump(mode="json")
-        finally:
-            await service.close()
+        )
 
     @mcp.tool()
     async def compare_soil_depths(
@@ -190,22 +167,18 @@ def build_server() -> FastMCP:
         operation: str = "avg",
     ) -> dict[str, Any]:
         """Compare aligned soil-moisture or temperature series across sensor depths."""
-        service = create_service()
-        try:
-            return (
-                await service.compare_soil_depths(
-                    station,
-                    start,
-                    end,
-                    depths_cm,
-                    metric,
-                    data_type,
-                    interval,
-                    operation,
-                )
-            ).model_dump(mode="json")
-        finally:
-            await service.close()
+        return await use_service(
+            lambda service: service.compare_soil_depths(
+                station,
+                start,
+                end,
+                depths_cm,
+                metric,
+                data_type,
+                interval,
+                operation,
+            )
+        )
 
     return mcp
 

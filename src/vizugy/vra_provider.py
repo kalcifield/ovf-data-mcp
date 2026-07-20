@@ -35,6 +35,24 @@ NETWORKS = {
 SOIL_METRIC_CODES = frozenset({299, 303})
 COVERAGE_BATCH_SIZE = 200
 SOIL_DEPTHS_CM = (10, 20, 30, 45, 60, 75)
+METRIC_ALIASES = {
+    "water-level": 68,
+    "discharge": 87,
+    "water-temperature": 85,
+    "groundwater-level": 69,
+    "layer-water-level": 70,
+    "precipitation": 71,
+    "soil-moisture": 299,
+    "soil-temperature": 303,
+}
+DATA_TYPE_ALIASES = {
+    "raw": 1,
+    "observed": 4,
+    "checked": 3,
+    "processed": 7,
+    "hydrological": 9,
+    "operational": 101,
+}
 
 T = TypeVar("T")
 
@@ -60,6 +78,23 @@ DATA_QUALITY_RESPONSE = TypeAdapter(list[AdatMinosites])
 FIELD_QUALITY_RESPONSE = TypeAdapter(list[MezoMinosites])
 COVERAGE_RESPONSE = TypeAdapter(list[DataCatalogMinMax])
 AGGREGATES_RESPONSE = TypeAdapter(list[TSShortItemDTResponseTSListFilter])
+
+
+def _resolve_catalog_item(
+    items: list[dict[str, Any]], value: str, aliases: dict[str, int], kind: str
+) -> dict[str, Any]:
+    normalized = value.casefold()
+    code = aliases.get(normalized)
+    if code is None and value.isdigit():
+        code = int(value)
+    matches = [
+        item
+        for item in items
+        if item["KodAZ"] == code or item.get("Nev", "").casefold() == normalized
+    ]
+    if len(matches) != 1:
+        raise ValueError(f"unknown or ambiguous {kind}: {value}")
+    return matches[0]
 
 
 class VRAProvider:
@@ -181,49 +216,11 @@ class VRAProvider:
 
     async def resolve_metric(self, value: str) -> dict[str, Any]:
         metrics, _ = await self.catalogs()
-        aliases = {
-            "water-level": 68,
-            "discharge": 87,
-            "water-temperature": 85,
-            "groundwater-level": 69,
-            "layer-water-level": 70,
-            "precipitation": 71,
-            "soil-moisture": 299,
-            "soil-temperature": 303,
-        }
-        code = aliases.get(value.casefold())
-        if code is None and value.isdigit():
-            code = int(value)
-        matches = [
-            item
-            for item in metrics
-            if item["KodAZ"] == code or item.get("Nev", "").casefold() == value.casefold()
-        ]
-        if len(matches) != 1:
-            raise ValueError(f"unknown or ambiguous metric: {value}")
-        return matches[0]
+        return _resolve_catalog_item(metrics, value, METRIC_ALIASES, "metric")
 
     async def resolve_data_type(self, value: str) -> dict[str, Any]:
         _, types = await self.catalogs()
-        aliases = {
-            "raw": 1,
-            "observed": 4,
-            "checked": 3,
-            "processed": 7,
-            "hydrological": 9,
-            "operational": 101,
-        }
-        code = aliases.get(value.casefold())
-        if code is None and value.isdigit():
-            code = int(value)
-        matches = [
-            item
-            for item in types
-            if item["KodAZ"] == code or item.get("Nev", "").casefold() == value.casefold()
-        ]
-        if len(matches) != 1:
-            raise ValueError(f"unknown or ambiguous data type: {value}")
-        return matches[0]
+        return _resolve_catalog_item(types, value, DATA_TYPE_ALIASES, "data type")
 
     async def observations(
         self,

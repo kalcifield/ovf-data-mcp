@@ -1,6 +1,6 @@
 import asyncio
 import json
-from collections.abc import Coroutine
+from collections.abc import Awaitable, Callable, Coroutine
 from datetime import datetime
 from enum import Enum
 from typing import Any, TypeVar
@@ -10,15 +10,12 @@ import typer
 from .errors import NotFoundError, UpstreamError
 from .factory import create_service
 from .models import (
-    Coverage,
-    DatasetDescription,
     ObservationResult,
     Page,
     QueryPlan,
-    SoilDepthComparison,
     StationPage,
-    WaterShortageStatus,
 )
+from .service import VizugyService
 
 T = TypeVar("T")
 
@@ -47,6 +44,11 @@ def run(coro: Coroutine[Any, Any, T]) -> T:
         raise typer.Exit(2) from exc
 
 
+async def use_service(operation: Callable[[VizugyService], Awaitable[T]]) -> T:
+    async with create_service() as service:
+        return await operation(service)
+
+
 def parse_time(value: str | None) -> datetime | None:
     if value is None:
         return None
@@ -62,15 +64,7 @@ def list_datasets(
     limit: int = typer.Option(50, min=1, max=1000),
     format: Output = typer.Option(Output.json),
 ) -> None:
-    service = create_service()
-
-    async def operation() -> Page:
-        try:
-            return await service.list_datasets(query, limit)
-        finally:
-            await service.close()
-
-    page = run(operation())
+    page = run(use_service(lambda service: service.list_datasets(query, limit)))
     if format == Output.jsonl:
         for item in page.items:
             print(item.model_dump_json())
@@ -81,15 +75,8 @@ def list_datasets(
 
 @datasets.command("describe")
 def describe_dataset(dataset_id: str, layer: int | None = typer.Option(None)) -> None:
-    service = create_service()
-
-    async def operation() -> DatasetDescription:
-        try:
-            return await service.describe_dataset(dataset_id, layer)
-        finally:
-            await service.close()
-
-    print(run(operation()).model_dump_json(indent=2))
+    result = run(use_service(lambda service: service.describe_dataset(dataset_id, layer)))
+    print(result.model_dump_json(indent=2))
 
 
 @datasets.command("water-shortage")
@@ -101,15 +88,12 @@ def water_shortage(
     limit: int = typer.Option(100, min=1, max=200),
 ) -> None:
     """Officially declared water-shortage grades per district."""
-    service = create_service()
-
-    async def operation() -> WaterShortageStatus:
-        try:
-            return await service.water_shortage_districts(grade_code, directorate, limit)
-        finally:
-            await service.close()
-
-    print(run(operation()).model_dump_json(indent=2))
+    result = run(
+        use_service(
+            lambda service: service.water_shortage_districts(grade_code, directorate, limit)
+        )
+    )
+    print(result.model_dump_json(indent=2))
 
 
 stations = typer.Typer(no_args_is_help=True)
@@ -132,15 +116,8 @@ def emit_page(page: Page | StationPage, format: Output) -> None:
 @catalog.command("measurements")
 def measurement_catalog() -> None:
     """List authoritative metric codes, units, ranges, and data types."""
-    service = create_service()
-
-    async def operation() -> dict[str, Any]:
-        try:
-            return await service.measurement_catalog()
-        finally:
-            await service.close()
-
-    print(json.dumps(run(operation()), ensure_ascii=False, indent=2))
+    result = run(use_service(lambda service: service.measurement_catalog()))
+    print(json.dumps(result, ensure_ascii=False, indent=2))
 
 
 @stations.command("search")
@@ -156,17 +133,14 @@ def search_stations(
     metric: str | None = typer.Option(None, help="Only stations with documented metric coverage."),
     format: Output = typer.Option(Output.json),
 ) -> None:
-    service = create_service()
-
-    async def operation() -> StationPage:
-        try:
-            return await service.find_stations(
+    result = run(
+        use_service(
+            lambda service: service.find_stations(
                 query, limit, watercourse, municipality, network, metric
             )
-        finally:
-            await service.close()
-
-    emit_page(run(operation()), format)
+        )
+    )
+    emit_page(result, format)
 
 
 @stations.command("nearest")
@@ -181,15 +155,12 @@ def nearest_stations(
     metric: str | None = typer.Option(None, help="Only stations with documented metric coverage."),
     format: Output = typer.Option(Output.json),
 ) -> None:
-    service = create_service()
-
-    async def operation() -> StationPage:
-        try:
-            return await service.nearest_stations(latitude, longitude, limit, network, metric)
-        finally:
-            await service.close()
-
-    emit_page(run(operation()), format)
+    result = run(
+        use_service(
+            lambda service: service.nearest_stations(latitude, longitude, limit, network, metric)
+        )
+    )
+    emit_page(result, format)
 
 
 @observations.command("get")
@@ -210,35 +181,30 @@ def get_observations(
         None, help="Soil depth alias; valid only for soil metrics."
     ),
 ) -> None:
-    service = create_service()
-
-    async def operation() -> QueryPlan | ObservationResult:
-        try:
-            if explain:
-                return await service.explain_observation_query(
-                    station,
-                    metric,
-                    data_type,
-                    parse_time(start),
-                    parse_time(end),
-                    data_ext,
-                    depth_cm,
-                )
-            return await service.get_observations(
+    async def operation(service: VizugyService) -> QueryPlan | ObservationResult:
+        if explain:
+            return await service.explain_observation_query(
                 station,
                 metric,
                 data_type,
                 parse_time(start),
                 parse_time(end),
-                limit,
-                include_quality=quality,
-                data_ext=data_ext,
-                depth_cm=depth_cm,
+                data_ext,
+                depth_cm,
             )
-        finally:
-            await service.close()
+        return await service.get_observations(
+            station,
+            metric,
+            data_type,
+            parse_time(start),
+            parse_time(end),
+            limit,
+            include_quality=quality,
+            data_ext=data_ext,
+            depth_cm=depth_cm,
+        )
 
-    result = run(operation())
+    result = run(use_service(operation))
     if explain:
         assert isinstance(result, QueryPlan)
         print(result.model_dump_json(indent=2))
@@ -264,15 +230,8 @@ def observation_coverage(
     data_type: str = typer.Option("operational"),
 ) -> None:
     """Inspect temporal coverage before querying values."""
-    service = create_service()
-
-    async def operation() -> Coverage:
-        try:
-            return await service.inspect_coverage(station, metric, data_type)
-        finally:
-            await service.close()
-
-    print(run(operation()).model_dump_json(indent=2))
+    result = run(use_service(lambda service: service.inspect_coverage(station, metric, data_type)))
+    print(result.model_dump_json(indent=2))
 
 
 @observations.command("aggregate")
@@ -292,37 +251,33 @@ def aggregate_observations(
     ),
 ) -> None:
     """Run documented server-side aggregation over a bounded interval."""
-    service = create_service()
 
-    async def execute() -> QueryPlan | ObservationResult:
-        try:
-            if explain:
-                return await service.explain_observation_query(
-                    station,
-                    metric,
-                    data_type,
-                    parse_time(start),
-                    parse_time(end),
-                    interval=interval,
-                    operation=operation,
-                    data_ext=data_ext,
-                    depth_cm=depth_cm,
-                )
-            return await service.aggregate_observations(
+    async def execute(service: VizugyService) -> QueryPlan | ObservationResult:
+        if explain:
+            return await service.explain_observation_query(
                 station,
                 metric,
                 data_type,
                 parse_time(start),
                 parse_time(end),
-                interval,
-                operation,
-                data_ext,
-                depth_cm,
+                interval=interval,
+                operation=operation,
+                data_ext=data_ext,
+                depth_cm=depth_cm,
             )
-        finally:
-            await service.close()
+        return await service.aggregate_observations(
+            station,
+            metric,
+            data_type,
+            parse_time(start),
+            parse_time(end),
+            interval,
+            operation,
+            data_ext,
+            depth_cm,
+        )
 
-    result = run(execute())
+    result = run(use_service(execute))
     if explain:
         assert isinstance(result, QueryPlan)
         print(result.model_dump_json(indent=2))
@@ -350,11 +305,9 @@ def compare_soil_depths(
     operation: str = typer.Option("avg"),
 ) -> None:
     """Compare aligned, upstream-aggregated soil series by sensor depth."""
-    service = create_service()
-
-    async def execute() -> SoilDepthComparison:
-        try:
-            return await service.compare_soil_depths(
+    result = run(
+        use_service(
+            lambda service: service.compare_soil_depths(
                 station,
                 parse_time(start),
                 parse_time(end),
@@ -364,10 +317,9 @@ def compare_soil_depths(
                 interval,
                 operation,
             )
-        finally:
-            await service.close()
-
-    print(run(execute()).model_dump_json(indent=2))
+        )
+    )
+    print(result.model_dump_json(indent=2))
 
 
 if __name__ == "__main__":
